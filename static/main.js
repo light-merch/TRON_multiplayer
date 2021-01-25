@@ -42,6 +42,10 @@ function initStats(Stats) {
     return stats;
 }
 
+function touchStarted() {
+    getAudioContext().resume();
+}
+
 
 function init() {
     var scene = new THREE.Scene();
@@ -49,6 +53,20 @@ function init() {
 
     var renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
+
+    const listener = new THREE.AudioListener();
+    camera.add( listener );
+    // create a global audio source
+    const sound = new THREE.Audio( listener );
+
+    // load a sound and set it as the Audio object's buffer
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load( 'sounds/engine_sound.wav', function( buffer ) {
+        sound.setBuffer( buffer );
+        sound.setLoop( true );
+        sound.setVolume( 0.5 );
+        sound.play();
+    });
 
     document.body.appendChild(renderer.domElement);
     var controls = new OrbitControls(camera, renderer.domElement);
@@ -109,7 +127,7 @@ function init() {
     var ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.7);
     scene.add(ambientLight);
 
-    camera.position.set(0, 5, -6);
+    camera.position.set(0, 4, -6);
 
     camera.rotation.y = 3.14;
     camera.rotation.x = 0.6;
@@ -156,13 +174,12 @@ window.onload = function() {
     document.addEventListener("keydown", onDocumentKeyDown, false);
     function onDocumentKeyDown(event) {
         var keyCode = event.which;
-        console.log(keyCode);
-        if (keyCode === 32) { // Space
-            // fizzyText.play = !fizzyText.play;
-        } else if (keyCode === 65) { // A
-            window.bike.rotation.z -= 0.1;
+        if (keyCode === 65) { // A
+            window.bike.rotation.z -= 0.05;
+            window.bike.rotation.y = -window.bike.rotation.z;
         } else if (keyCode === 68) { // D
-            window.bike.rotation.z += 0.1;
+            window.bike.rotation.z += 0.05;
+            window.bike.rotation.y = -window.bike.rotation.z;
         }
     }
 
@@ -173,6 +190,12 @@ window.onload = function() {
     var camera = tmp[2];
     var controls = tmp[3];
 
+    const floor_geometry = new THREE.BoxGeometry( 1000, 1, 1000 );
+    const floor_material = new THREE.MeshBasicMaterial( {color: 0x737577} );
+    var floor = new THREE.Mesh(floor_geometry, floor_material);
+    scene.add(floor);
+
+
     const trail_geometry = new THREE.BoxGeometry( 0.05, 1, 1 );
     const trail_material = new THREE.MeshBasicMaterial( {color: 0x0fbef2} );
 
@@ -182,8 +205,12 @@ window.onload = function() {
         controls.update();
 
         if (window.bike !== undefined) {
-            window.bike.position.z += 0.1;
-            camera.position.z += 0.1;
+            window.bike.position.z += 0.1 * Math.cos(window.bike.rotation.y);
+            window.bike.position.x -= 0.1 * Math.sin(window.bike.rotation.y);
+
+            camera.position.z += 0.1 * Math.cos(window.bike.rotation.y);
+            // camera.position.x -= 0.1 * Math.sin(window.bike.rotation.y);
+            // camera.rotation.z = Math.PI + window.bike.rotation.y;
 
             controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
