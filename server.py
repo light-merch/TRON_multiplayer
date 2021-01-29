@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 import json
+import math
 from time import time
 
 from flask import Flask, send_from_directory, render_template, request
@@ -13,21 +14,31 @@ class Player:
     x: int
     y: int
     z: int
+    heading: int
+    speed: int
 
 
 class Game():
     def __init__(self) -> None:
         self.AllPlayers = dict()
         self.LastTime = int(time() * 1000)
+        self.TurnAngle = 90 * (math.pi / 180)
 
-    def is_turn_correct(self):
+    def collisionChecker(self):
         pass
 
-    def do_turn(self):
-        pass
+    def update(self):
+        currentTime = int(time() * 1000)
+        for bike_key in self.AllPlayers.keys():
+            speed = (currentTime - self.LastTime) * self.AllPlayers[bike_key].speed
+            self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
+            self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
+
+        self.LastTime = currentTime
 
     def get_game_info(self):
         pass
+
 
 
 # Server part
@@ -41,22 +52,27 @@ def send_js(path):
     return send_from_directory('js', path)
 
 
+@app.route('/send_data/<username>/<key_code>')
+def send(username, key_code):
+    TheGrid.update()
+
+    if key_code == '65':
+        TheGrid.AllPlayers[username].heading += TheGrid.TurnAngle
+    elif key_code == '68':
+        TheGrid.AllPlayers[username].heading -= TheGrid.TurnAngle
+    return '{"done": true}'
+
+
 @app.route('/get_data/<username>')
 def get(username):
-    currentTime = int(time() * 1000)
-    for bike_key in TheGrid.AllPlayers.keys():
-        TheGrid.AllPlayers[bike_key].z += (currentTime - TheGrid.LastTime) * 0.001
-
-    TheGrid.LastTime = currentTime
+    TheGrid.update()
 
     if username not in TheGrid.AllPlayers.keys():
-        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0)
-    else:
-        pass
+        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, 0.01)
 
     converted = dict()
     for player in TheGrid.AllPlayers.items():
-        converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z}
+        converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z, 'heading': player[1].heading}
 
     return json.dumps(converted)
 

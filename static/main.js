@@ -137,14 +137,16 @@ function init() {
 }
 
 
+
 window.onload = function() {
     const FizzyText = function () {
-        this.name = "Pavel Artushkov";
+        this.all_names = ['tron', 'clu', 'flynn', 'sam', 'quorra', 'rinzler', 'tesler'];
+        this.username = this.all_names[Math.floor(Math.random() * (this.all_names.length))];
 
-        this.reset_defaults = function () {
-            for (var i = 0; i < gui.__controllers.length; i++) {
-                gui.__controllers[i].setValue(gui.__controllers[i].initialValue);
-            }
+        this.submit_name = function () {
+            this.username = this.username.toLowerCase();
+            window.gameBegin = true;
+            GameLoop();
         };
     };
 
@@ -159,6 +161,9 @@ window.onload = function() {
         width: 300
     });
 
+    gui.add(fizzyText, "username").name("Enter username");
+    gui.add(fizzyText, "submit_name").name("Enter game");
+
 
     class Player {
         constructor(last_trail_x, last_trail_y, last_trail_z) {
@@ -172,15 +177,12 @@ window.onload = function() {
 
     document.addEventListener("keydown", onDocumentKeyDown, false);
     function onDocumentKeyDown(event) {
-        var keyCode = event.which;
-        if (keyCode === 65) { // A
-            window.bike.rotation.z -= 0.05;
-            window.bike.rotation.y = -window.bike.rotation.z;
-        } else if (keyCode === 68) { // D
-            window.bike.rotation.z += 0.05;
-            window.bike.rotation.y = -window.bike.rotation.z;
+        if (window.gameBegin) {
+            httpGet('/send_data/' + fizzyText.username + '/' + event.which);
         }
     }
+
+
 
 
     var tmp = init();
@@ -188,17 +190,18 @@ window.onload = function() {
     var renderer = tmp[1];
     var camera = tmp[2];
     var controls = tmp[3];
-    window.name = "pavTiger";
     var allPlayers, currentPlayer, vehicles = {};
+    window.gameBegin = false;
 
     const floor_geometry = new THREE.BoxGeometry( 1000, 1, 1000 );
-    const floor_material = new THREE.MeshBasicMaterial( {color: 0x737577} );
+    const floor_material = new THREE.MeshBasicMaterial( {color: 0x4784e6} );
     var floor = new THREE.Mesh(floor_geometry, floor_material);
     scene.add(floor);
 
 
     const trail_geometry = new THREE.BoxGeometry( 0.05, 1, 1 );
     const trail_material = new THREE.MeshBasicMaterial( {color: 0x0fbef2} );
+
 
     var GameLoop = function() {
         requestAnimationFrame(GameLoop);
@@ -212,17 +215,21 @@ window.onload = function() {
             // camera.position.z += 0.1 * Math.cos(window.bike.rotation.y);
             // camera.position.x -= 0.1 * Math.sin(window.bike.rotation.y);
             // camera.rotation.z = Math.PI + window.bike.rotation.y;
-            
-            allPlayers = httpGet('/get_data/' + window.name);
 
-            currentPlayer = allPlayers[window.name]
+            allPlayers = httpGet('/get_data/' + fizzyText.username);
+
+            currentPlayer = allPlayers[fizzyText.username]
             window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
+            window.bike.rotation.y = currentPlayer["heading"];
             for (var key in allPlayers) {
-
-                if (key !== window.name) {
-                    var copy = window.template.clone();
-                    scene.add(copy);
-                    vehicles[key] = copy;
+                if (key !== fizzyText.username) {
+                    if (vehicles[key] === undefined) {
+                        var copy = window.template.clone();
+                        scene.add(copy);
+                        vehicles[key] = copy;
+                    } else {
+                        vehicles[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
+                    }
                 }
             }
 
@@ -236,5 +243,4 @@ window.onload = function() {
         renderer.render(scene, camera); 
         stats.end();
     };
-    GameLoop(scene);
 };
