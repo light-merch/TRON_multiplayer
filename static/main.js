@@ -212,20 +212,21 @@ window.onload = function() {
             // camera.position.z += 0.1 * Math.cos(window.bike.rotation.y);
             // camera.position.x -= 0.1 * Math.sin(window.bike.rotation.y);
             // camera.rotation.z = Math.PI + window.bike.rotation.y;
-            //
-            // controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
-
+            
             allPlayers = httpGet('/get_data/' + window.name);
+
             currentPlayer = allPlayers[window.name]
             window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
-
             for (var key in allPlayers) {
+
                 if (key !== window.name) {
                     var copy = window.template.clone();
                     scene.add(copy);
                     vehicles[key] = copy;
                 }
             }
+
+            controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
             // var trail = new THREE.Mesh(trail_geometry, trail_material);
             // trail.position.set(player.last_trail_x, player.last_trail_y, player.last_trail_z);
