@@ -21,23 +21,20 @@ class Player:
 class Game():
     def __init__(self) -> None:
         self.AllPlayers = dict()
-        self.LastTime = int(time() * 1000)
-        self.TurnAngle = 90 * (math.pi / 180)
+        self.LastTime = int(time() * 1000) # Current time in milliseconds
+        self.TurnAngle = 45 * (math.pi / 180)
 
     def collisionChecker(self):
         pass
 
     def update(self):
-        currentTime = int(time() * 1000)
+        currentTime = int(time() * 1000) # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():
             speed = (currentTime - self.LastTime) * self.AllPlayers[bike_key].speed
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
 
         self.LastTime = currentTime
-
-    def get_game_info(self):
-        pass
 
 
 
@@ -50,6 +47,11 @@ def root():
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
+
+
+@app.route('/check/<username>')
+def check(username):
+    return ['{"status": "false"}', '{"status": "true"}'][username in TheGrid.AllPlayers.keys()]
 
 
 @app.route('/send_data/<username>/<key_code>')

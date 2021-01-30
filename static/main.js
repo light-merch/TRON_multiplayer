@@ -99,14 +99,14 @@ function init() {
 
     new MTLLoader( manager )
         .setPath( 'models/' )
-        .load( 'lightcycle.mtl', function ( materials ) {
+        .load( 'bike.mtl', function ( materials ) {
 
             materials.preload();
 
             new OBJLoader( manager )
                 .setMaterials( materials )
                 .setPath( 'models/' )
-                .load( 'lightcycle.obj', function ( object ) {
+                .load( 'bike.obj', function ( object ) {
                     window.template = object;
 
                     window.bike = window.template.clone();
@@ -136,17 +136,44 @@ function init() {
     return [scene, renderer, camera, controls]
 }
 
+function generateUsername(length) {
+    for (const name of ['flynn', 'tron', 'clu', 'sam', 'quorra', 'rinzler']) {
+        if (httpGet('/check/' + name)['status'] === 'false') {
+            return name;
+        }
+    }
+
+    var result = '';
+    while (true) {
+        var characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        for (var i = 0; i < length; i++) {
+            result += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        if (httpGet('/check/' + result)['status'] === 'false') {
+            return result;
+        }
+    }
+}
 
 
 window.onload = function() {
     const FizzyText = function () {
-        this.all_names = ['tron', 'clu', 'flynn', 'sam', 'quorra', 'rinzler', 'tesler'];
-        this.username = this.all_names[Math.floor(Math.random() * (this.all_names.length))];
+        this.username = generateUsername(6);
+        this.error = "";
 
         this.submit_name = function () {
             this.username = this.username.toLowerCase();
-            window.gameBegin = true;
-            GameLoop();
+            if (httpGet('/check/' + this.username)['status'] === 'true') {
+                if (this.error === "") {
+                    this.error = "This username is already taken"
+                    var e = gui.add(fizzyText, "error").name("Error");
+                    e.domElement.style.pointerEvents = "none";
+                }
+            } else {
+                window.gameBegin = true;
+                GameLoop();
+                gui.destroy();
+            }
         };
     };
 
@@ -158,21 +185,11 @@ window.onload = function() {
     var gui = new dat.GUI({
         load: JSON,
         preset: "Flow",
-        width: 300
+        width: 400
     });
 
     gui.add(fizzyText, "username").name("Enter username");
     gui.add(fizzyText, "submit_name").name("Enter game");
-
-
-    class Player {
-        constructor(last_trail_x, last_trail_y, last_trail_z) {
-            this.last_trail_x = last_trail_x;
-            this.last_trail_y = last_trail_y;
-            this.last_trail_z = last_trail_z;
-        }
-    }
-    var player = new Player(0, 1, -3);
 
 
     document.addEventListener("keydown", onDocumentKeyDown, false);
@@ -190,7 +207,7 @@ window.onload = function() {
     var renderer = tmp[1];
     var camera = tmp[2];
     var controls = tmp[3];
-    var allPlayers, currentPlayer, vehicles = {};
+    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0;
     window.gameBegin = false;
 
     const floor_geometry = new THREE.BoxGeometry( 1000, 1, 1000 );
@@ -209,9 +226,6 @@ window.onload = function() {
         controls.update();
 
         if (window.bike !== undefined) {
-            // window.bike.position.z += 0.1 * Math.cos(window.bike.rotation.y);
-            // window.bike.position.x -= 0.1 * Math.sin(window.bike.rotation.y);
-            //
             // camera.position.z += 0.1 * Math.cos(window.bike.rotation.y);
             // camera.position.x -= 0.1 * Math.sin(window.bike.rotation.y);
             // camera.rotation.z = Math.PI + window.bike.rotation.y;
@@ -221,6 +235,11 @@ window.onload = function() {
             currentPlayer = allPlayers[fizzyText.username]
             window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
             window.bike.rotation.y = currentPlayer["heading"];
+
+            camera.position.x += currentPlayer["x"] - lastX;
+            camera.position.y += currentPlayer["y"] - lastY;
+            camera.position.z += currentPlayer["z"] - lastZ;
+
             for (var key in allPlayers) {
                 if (key !== fizzyText.username) {
                     if (vehicles[key] === undefined) {
@@ -234,6 +253,9 @@ window.onload = function() {
             }
 
             controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
+            lastX = currentPlayer["x"];
+            lastY = currentPlayer["y"];
+            lastZ = currentPlayer["z"];
 
             // var trail = new THREE.Mesh(trail_geometry, trail_material);
             // trail.position.set(player.last_trail_x, player.last_trail_y, player.last_trail_z);
