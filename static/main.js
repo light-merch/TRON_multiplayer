@@ -95,22 +95,40 @@ function init() {
     const onError = function () { };
 
     const manager = new THREE.LoadingManager();
-    manager.addHandler( /\.dds$/i, new DDSLoader() );
+    manager.addHandler(/\.dds$/i, new DDSLoader());
 
-    new MTLLoader( manager )
-        .setPath( 'models/' )
-        .load( 'bike.mtl', function ( materials ) {
+    new MTLLoader(manager)
+        .setPath('models/')
+        .load( 'bike.mtl', function (materials) {
 
             materials.preload();
 
-            new OBJLoader( manager )
+            new OBJLoader(manager)
                 .setMaterials( materials )
-                .setPath( 'models/' )
+                .setPath('models/')
                 .load( 'bike.obj', function ( object ) {
                     window.template = object;
 
                     window.bike = window.template.clone();
-                    scene.add( window.bike );
+                    scene.add(window.bike);
+
+                }, onProgress, onError );
+
+        });
+
+    new MTLLoader(manager)
+        .setPath('models/')
+        .load( 'arena.mtl', function ( materials ) {
+
+            materials.preload();
+
+            new OBJLoader(manager)
+                .setMaterials( materials )
+                .setPath('models/')
+                .load( 'arena.obj', function (object) {
+                    window.arena = object;
+                    scene.add(window.arena);
+                    window.arena.scale.set(50, 1, 50);
 
                 }, onProgress, onError );
 
@@ -125,16 +143,17 @@ function init() {
     directionalLight.position.set(-6, -8, -8);
     scene.add(directionalLight);
 
-    var ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.7);
+    var ambientLight = new THREE.AmbientLight(0xFFFFFF, 4);
     scene.add(ambientLight);
 
-    camera.position.set(0, 4, -6);
+    camera.position.set(0, 8, -15);
 
     camera.rotation.y = 3.14;
     camera.rotation.x = 0.6;
 
     return [scene, renderer, camera, controls]
 }
+
 
 function generateUsername(length) {
     for (const name of ['flynn', 'tron', 'clu', 'sam', 'quorra', 'rinzler']) {
@@ -210,10 +229,10 @@ window.onload = function() {
     var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0;
     window.gameBegin = false;
 
-    const floor_geometry = new THREE.BoxGeometry( 1000, 1, 1000 );
-    const floor_material = new THREE.MeshBasicMaterial( {color: 0x4784e6} );
-    var floor = new THREE.Mesh(floor_geometry, floor_material);
-    scene.add(floor);
+    // const floor_geometry = new THREE.BoxGeometry( 1000, 1, 1000 );
+    // const floor_material = new THREE.MeshBasicMaterial( {color: 0x4784e6} );
+    // var floor = new THREE.Mesh(floor_geometry, floor_material);
+    // scene.add(floor);
 
 
     const trail_geometry = new THREE.BoxGeometry( 0.05, 1, 1 );
