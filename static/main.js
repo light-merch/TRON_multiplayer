@@ -42,9 +42,6 @@ function initStats(Stats) {
     return stats;
 }
 
-function touchStarted() {
-    getAudioContext().resume();
-}
 
 
 function init() {
@@ -53,20 +50,6 @@ function init() {
 
     var renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
-
-    const listener = new THREE.AudioListener();
-    camera.add( listener );
-    // create a global audio source
-    const sound = new THREE.Audio( listener );
-
-    // load a sound and set it as the Audio object's buffer
-    const audioLoader = new THREE.AudioLoader();
-    audioLoader.load( 'sounds/engine_sound.wav', function( buffer ) {
-        sound.setBuffer( buffer );
-        sound.setLoop( true );
-        sound.setVolume( 0.5 );
-        sound.play();
-    });
 
     document.body.appendChild(renderer.domElement);
     var controls = new OrbitControls(camera, renderer.domElement);
@@ -87,7 +70,7 @@ function init() {
         if ( xhr.lengthComputable ) {
 
             const percentComplete = xhr.loaded / xhr.total * 100;
-            console.log( Math.round( percentComplete, 2 ) + '% downloaded' );
+            console.log( Math.round(percentComplete, 2) + '% downloaded' );
 
         }
 
@@ -106,9 +89,10 @@ function init() {
             new OBJLoader(manager)
                 .setMaterials( materials )
                 .setPath('models/')
-                .load( 'bike.obj', function ( object ) {
-                    window.template = object;
-
+                .load( 'bike.obj', function (object) {
+                    var pivotPoint = new THREE.Object3D();
+                    pivotPoint.add(object);
+                    window.template = pivotPoint;
                     window.bike = window.template.clone();
                     scene.add(window.bike);
 
@@ -118,7 +102,7 @@ function init() {
 
     new MTLLoader(manager)
         .setPath('models/')
-        .load( 'arena.mtl', function ( materials ) {
+        .load( 'arena.mtl', function (materials) {
 
             materials.preload();
 
@@ -128,21 +112,14 @@ function init() {
                 .load( 'arena.obj', function (object) {
                     window.arena = object;
                     scene.add(window.arena);
-                    window.arena.scale.set(50, 1, 50);
+                    window.arena.scale.set(40, 1, 40);
+                    window.arena.rotation.y = 180;
 
                 }, onProgress, onError );
 
         } );
 
     // light
-    var directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1);
-    directionalLight.position.set(6, 8, 8);
-    scene.add(directionalLight);
-
-    directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1);
-    directionalLight.position.set(-6, -8, -8);
-    scene.add(directionalLight);
-
     var ambientLight = new THREE.AmbientLight(0xFFFFFF, 4);
     scene.add(ambientLight);
 
@@ -181,8 +158,22 @@ window.onload = function() {
         this.error = "";
 
         this.submit_name = function () {
+            const listener = new THREE.AudioListener();
+            camera.add( listener );
+            // create a global audio source
+            const sound = new THREE.Audio( listener );
+
+            // load a sound and set it as the Audio object's buffer
+            const audioLoader = new THREE.AudioLoader();
+            audioLoader.load( 'sounds/tron_legacy.mp3', function(buffer) {
+                sound.setBuffer( buffer );
+                sound.setLoop(true);
+                sound.setVolume(0.5);
+            });
+            sound.play();
+
             this.username = this.username.toLowerCase();
-            if (httpGet('/check/' + this.username)['status'] === 'true') {
+            if (httpGet('/check/' + this.username)['status'] === 'true' || this.username.length >= 30) {
                 if (this.error === "") {
                     this.error = "This username is already taken"
                     var e = gui.add(fizzyText, "error").name("Error");

@@ -22,7 +22,7 @@ class Game():
     def __init__(self) -> None:
         self.AllPlayers = dict()
         self.LastTime = int(time() * 1000) # Current time in milliseconds
-        self.TurnAngle = 20 * (math.pi / 180)
+        self.TurnAngle = 5 * (math.pi / 180)
 
     def collisionChecker(self):
         pass
@@ -70,7 +70,7 @@ def get(username):
     TheGrid.update()
 
     if username not in TheGrid.AllPlayers.keys():
-        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, 0.01)
+        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, 0.02)
 
     converted = dict()
     for player in TheGrid.AllPlayers.items():
