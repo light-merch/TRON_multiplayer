@@ -221,6 +221,10 @@ window.onload = function() {
     window.gameBegin = false;
     window.names = {};
 
+    const loader = new THREE.FontLoader();
+    loader.load( 'models/font.json', function (font) {
+        window.font = font;
+    });
     // const floor_geometry = new THREE.BoxGeometry( 1000, 1, 1000 );
     // const floor_material = new THREE.MeshBasicMaterial( {color: 0x4784e6} );
     // var floor = new THREE.Mesh(floor_geometry, floor_material);
@@ -255,33 +259,28 @@ window.onload = function() {
                         vehicles[key] = copy;
                         window.key = key;
 
-                        const loader = new THREE.FontLoader();
-                        loader.load( 'models/font.json', function (font) {
-                            const geometry = new THREE.TextGeometry(window.key, {
-                                font: font,
-                                size: 80,
-                                height: 5,
-                                curveSegments: 12,
-                                bevelEnabled: true,
-                                bevelThickness: 10,
-                                bevelSize: 8,
-                                bevelOffset: 0,
-                                bevelSegments: 5
-                            });
-                            const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-                            var text = new THREE.Mesh(geometry, material);
-                            text.scale.set(0.02, 0.02, 0.02);
-                            scene.add(text);
-                            window.names[window.key] = text;
+                        const geometry = new THREE.TextGeometry(window.key, {
+                            font: window.font,
+                            size: 80,
+                            height: 3,
+                            curveSegments: 12,
+                            bevelEnabled: true,
+                            bevelThickness: 1,
+                            bevelSize: 1,
+                            bevelOffset: 0,
+                            bevelSegments: 5
                         });
+                        const material = new THREE.MeshPhongMaterial( {color: 0x444444} );
+                        var text = new THREE.Mesh(geometry, material);
+
+                        text.scale.set(0.015, 0.015, 0.015);
+                        window.names[window.key] = text;
+                        scene.add(text);
                     } else {
                         vehicles[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
                         vehicles[key].rotation.y = allPlayers[key].heading;
-                        try {
-                            window.names[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
-                        } catch (error) {
-                            console.log('error');
-                        }
+                        window.names[key].position.set(allPlayers[key].x, allPlayers[key].y + 3, allPlayers[key].z);
+                        window.names[key].lookAt(window.bike.position.x, window.bike.position.y, window.bike.position.z);
                     }
                 }
             }
