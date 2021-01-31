@@ -23,6 +23,7 @@ class Game():
         self.AllPlayers = dict()
         self.LastTime = int(time() * 1000) # Current time in milliseconds
         self.TurnAngle = 5 * (math.pi / 180)
+        self.Speed = 0.02
 
     def collisionChecker(self):
         pass
@@ -70,7 +71,7 @@ def get(username):
     TheGrid.update()
 
     if username not in TheGrid.AllPlayers.keys():
-        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, 0.02)
+        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, TheGrid.Speed)
 
     converted = dict()
     for player in TheGrid.AllPlayers.items():
@@ -82,5 +83,4 @@ def get(username):
 
 if __name__ == "__main__":
     TheGrid = Game()
-
     app.run()

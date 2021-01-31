@@ -92,6 +92,7 @@ function init() {
                 .load( 'bike.obj', function (object) {
                     var pivotPoint = new THREE.Object3D();
                     pivotPoint.add(object);
+                    object.position.set(0, 0, 2);
                     window.template = pivotPoint;
                     window.bike = window.template.clone();
                     scene.add(window.bike);
@@ -120,7 +121,7 @@ function init() {
         } );
 
     // light
-    var ambientLight = new THREE.AmbientLight(0xFFFFFF, 4);
+    var ambientLight = new THREE.AmbientLight(0xFFFFFF, 8);
     scene.add(ambientLight);
 
     camera.position.set(0, 8, -15);
@@ -211,7 +212,6 @@ window.onload = function() {
 
 
 
-
     var tmp = init();
     var scene = tmp[0];
     var renderer = tmp[1];
@@ -219,6 +219,7 @@ window.onload = function() {
     var controls = tmp[3];
     var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0;
     window.gameBegin = false;
+    window.names = {};
 
     // const floor_geometry = new THREE.BoxGeometry( 1000, 1, 1000 );
     // const floor_material = new THREE.MeshBasicMaterial( {color: 0x4784e6} );
@@ -236,10 +237,6 @@ window.onload = function() {
         controls.update();
 
         if (window.bike !== undefined) {
-            // camera.position.z += 0.1 * Math.cos(window.bike.rotation.y);
-            // camera.position.x -= 0.1 * Math.sin(window.bike.rotation.y);
-            // camera.rotation.z = Math.PI + window.bike.rotation.y;
-
             allPlayers = httpGet('/get_data/' + fizzyText.username);
 
             currentPlayer = allPlayers[fizzyText.username]
@@ -256,8 +253,35 @@ window.onload = function() {
                         var copy = window.template.clone();
                         scene.add(copy);
                         vehicles[key] = copy;
+                        window.key = key;
+
+                        const loader = new THREE.FontLoader();
+                        loader.load( 'models/font.json', function (font) {
+                            const geometry = new THREE.TextGeometry(window.key, {
+                                font: font,
+                                size: 80,
+                                height: 5,
+                                curveSegments: 12,
+                                bevelEnabled: true,
+                                bevelThickness: 10,
+                                bevelSize: 8,
+                                bevelOffset: 0,
+                                bevelSegments: 5
+                            });
+                            const material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+                            var text = new THREE.Mesh(geometry, material);
+                            text.scale.set(0.02, 0.02, 0.02);
+                            scene.add(text);
+                            window.names[window.key] = text;
+                        });
                     } else {
                         vehicles[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
+                        vehicles[key].rotation.y = allPlayers[key].heading;
+                        try {
+                            window.names[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
+                        } catch (error) {
+                            console.log('error');
+                        }
                     }
                 }
             }
