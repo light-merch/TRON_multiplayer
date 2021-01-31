@@ -270,6 +270,8 @@ window.onload = function() {
                             bevelOffset: 0,
                             bevelSegments: 5
                         });
+                        geometry.computeBoundingBox();
+                        geometry.center();
                         const material = new THREE.MeshPhongMaterial( {color: 0x444444} );
                         var text = new THREE.Mesh(geometry, material);
 
@@ -280,7 +282,7 @@ window.onload = function() {
                         vehicles[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
                         vehicles[key].rotation.y = allPlayers[key].heading;
                         window.names[key].position.set(allPlayers[key].x, allPlayers[key].y + 3, allPlayers[key].z);
-                        window.names[key].lookAt(window.bike.position.x, window.bike.position.y, window.bike.position.z);
+                        window.names[key].lookAt(window.bike.position.x, window.bike.position.y + 3, window.bike.position.z);
                     }
                 }
             }

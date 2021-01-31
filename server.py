@@ -16,6 +16,7 @@ class Player:
     z: int
     heading: int
     speed: int
+    boost_time: int
 
 
 class Game():
@@ -23,7 +24,7 @@ class Game():
         self.AllPlayers = dict()
         self.LastTime = int(time() * 1000) # Current time in milliseconds
         self.TurnAngle = 5 * (math.pi / 180)
-        self.Speed = 0.02
+        self.Speed = 0.03
 
     def collisionChecker(self):
         pass
@@ -31,6 +32,10 @@ class Game():
     def update(self):
         currentTime = int(time() * 1000) # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():
+            if self.AllPlayers[bike_key].boost_time <= 0:
+                self.AllPlayers[bike_key].speed = TheGrid.Speed
+            else:
+                self.AllPlayers[bike_key].boost_time -= (currentTime - self.LastTime)
             speed = (currentTime - self.LastTime) * self.AllPlayers[bike_key].speed
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
@@ -59,10 +64,13 @@ def check(username):
 def send(username, key_code):
     TheGrid.update()
 
-    if key_code == '65':
+    if key_code == '65':  # A
         TheGrid.AllPlayers[username].heading += TheGrid.TurnAngle
-    elif key_code == '68':
+    elif key_code == '68':  # D
         TheGrid.AllPlayers[username].heading -= TheGrid.TurnAngle
+    elif key_code == '16':  # Shift
+        TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
+        TheGrid.AllPlayers[username].boost_time = 2000
     return '{"done": true}'
 
 
@@ -71,7 +79,7 @@ def get(username):
     TheGrid.update()
 
     if username not in TheGrid.AllPlayers.keys():
-        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, TheGrid.Speed)
+        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, TheGrid.Speed, 0)
 
     converted = dict()
     for player in TheGrid.AllPlayers.items():
@@ -83,4 +91,4 @@ def get(username):
 
 if __name__ == "__main__":
     TheGrid = Game()
-    app.run()
+    app.run(port=5002)
