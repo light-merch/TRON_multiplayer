@@ -218,7 +218,7 @@ window.onload = function() {
     var camera = tmp[2];
     var controls = tmp[3];
 
-    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastTrail = [new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0)];
+    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = [new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0)];
     window.gameBegin = false;
     window.names = {};
     const MAX_POINTS = 100000;
@@ -238,10 +238,10 @@ window.onload = function() {
         trail_vertices[lastBufferIndex ++] = vector.y;
         trail_vertices[lastBufferIndex ++] = vector.z;
 
-        // console.log(trail_vertices);
         return trail_vertices
     }
 
+    // Trail init
     trail_geometry.setAttribute( 'position', new THREE.BufferAttribute( trail_vertices, 3 ) );
     var trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2 } );
     var mesh = new THREE.Mesh( trail_geometry, trail_material );
@@ -253,18 +253,49 @@ window.onload = function() {
     });
     mesh.frustumCulled = false;
 
+
+
+    // Main loop
     var GameLoop = function() {
         requestAnimationFrame(GameLoop);
         stats.begin();
         controls.update();
 
+        // Check if bike isn't created yet
         if (window.bike !== undefined) {
+            // Get data about all players
             allPlayers = httpGet('/get_data/' + fizzyText.username);
 
-            currentPlayer = allPlayers[fizzyText.username]
+            // Update camera
+            currentPlayer = allPlayers[fizzyText.username];
+            camera.position.x += currentPlayer["x"] - lastX;
+            camera.position.y += currentPlayer["y"] - lastY;
+            camera.position.z += currentPlayer["z"] - lastZ;
+
+            var angle = lastHeading - currentPlayer["heading"];
+
+            if (Math.abs(angle) >= 0.0001) {
+                if (angle > 0) {
+                    angle = Math.min(angle, 0.04);
+                } else {
+                    angle = Math.max(angle, -0.04);
+                }
+                console.log(angle);
+                var x = [camera.position.x, window.bike.position.x];
+                var y = [camera.position.z, window.bike.position.z];
+                camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
+                camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
+
+                lastHeading -= angle;
+            }
+
+            // Update user's bike
             window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
             window.bike.rotation.y = currentPlayer["heading"];
+            controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
+
+            // Update trail
             trail_vertices = appendPoint(trail_vertices, lastTrail[0]);
             trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
             trail_vertices = appendPoint(trail_vertices, window.bike.position);
@@ -273,17 +304,15 @@ window.onload = function() {
             trail_vertices = appendPoint(trail_vertices, top_bike);
             trail_vertices = appendPoint(trail_vertices, window.bike.position);
             trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
+
             lastTrail[1] = top_bike;
             lastTrail[0] = new THREE.Vector3(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
             trail_geometry.setAttribute( 'position', new THREE.BufferAttribute( trail_vertices, 3 ) );
-            var mesh = new THREE.Mesh( trail_geometry, trail_material );
 
-            camera.position.x += currentPlayer["x"] - lastX;
-            camera.position.y += currentPlayer["y"] - lastY;
-            camera.position.z += currentPlayer["z"] - lastZ;
-            controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
+
+            // Display all players
             for (var key in allPlayers) {
                 if (key !== fizzyText.username) {
                     if (vehicles[key] === undefined) {
@@ -292,6 +321,7 @@ window.onload = function() {
                         vehicles[key] = copy;
                         window.key = key;
 
+                        // Display usernames
                         const geometry = new THREE.TextGeometry(window.key, {
                             font: window.font,
                             size: 80,
@@ -313,9 +343,11 @@ window.onload = function() {
                         window.names[window.key] = text;
                         scene.add(text);
                     } else {
+                        // Update players cars
                         vehicles[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
                         vehicles[key].rotation.y = allPlayers[key].heading;
                         window.names[key].position.set(allPlayers[key].x, allPlayers[key].y + 3, allPlayers[key].z);
+                        // Rotate username to face user
                         window.names[key].lookAt(window.bike.position.x, window.bike.position.y + 3, window.bike.position.z);
                     }
                 }

@@ -23,7 +23,7 @@ class Game():
     def __init__(self) -> None:
         self.AllPlayers = dict()
         self.LastTime = int(time() * 1000) # Current time in milliseconds
-        self.TurnAngle = 5 * (math.pi / 180)
+        self.TurnAngle = 5 * (math.pi / 180) # Default is 5
         self.Speed = 0.03
 
     def collisionChecker(self):
