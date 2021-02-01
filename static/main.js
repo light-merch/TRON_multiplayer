@@ -92,7 +92,7 @@ function init() {
                 .load( 'bike.obj', function (object) {
                     var pivotPoint = new THREE.Object3D();
                     pivotPoint.add(object);
-                    object.position.set(0, 0, 2);
+                    object.position.set(0, -0.3, 2);
                     window.template = pivotPoint;
                     window.bike = window.template.clone();
                     scene.add(window.bike);
@@ -217,23 +217,41 @@ window.onload = function() {
     var renderer = tmp[1];
     var camera = tmp[2];
     var controls = tmp[3];
-    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0;
+
+    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastTrail = [new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0)];
     window.gameBegin = false;
     window.names = {};
+    const MAX_POINTS = 100000;
+    var lastBufferIndex = 0;
 
     const loader = new THREE.FontLoader();
     loader.load( 'models/font.json', function (font) {
         window.font = font;
     });
-    // const floor_geometry = new THREE.BoxGeometry( 1000, 1, 1000 );
-    // const floor_material = new THREE.MeshBasicMaterial( {color: 0x4784e6} );
-    // var floor = new THREE.Mesh(floor_geometry, floor_material);
-    // scene.add(floor);
+
+    var trail_geometry = new THREE.BufferGeometry();
+    var trail_vertices = new Float32Array(MAX_POINTS * 3);
 
 
-    const trail_geometry = new THREE.BoxGeometry( 0.05, 1, 1 );
-    const trail_material = new THREE.MeshBasicMaterial( {color: 0x0fbef2} );
+    function appendPoint(trail_vertices, vector) {
+        trail_vertices[lastBufferIndex ++] = vector.x;
+        trail_vertices[lastBufferIndex ++] = vector.y;
+        trail_vertices[lastBufferIndex ++] = vector.z;
 
+        // console.log(trail_vertices);
+        return trail_vertices
+    }
+
+    trail_geometry.setAttribute( 'position', new THREE.BufferAttribute( trail_vertices, 3 ) );
+    var trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2 } );
+    var mesh = new THREE.Mesh( trail_geometry, trail_material );
+    scene.add(mesh);
+    mesh.traverse( function( node ) {
+        if( node.material ) {
+            node.material.side = THREE.DoubleSide;
+        }
+    });
+    mesh.frustumCulled = false;
 
     var GameLoop = function() {
         requestAnimationFrame(GameLoop);
@@ -247,9 +265,24 @@ window.onload = function() {
             window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
             window.bike.rotation.y = currentPlayer["heading"];
 
+            trail_vertices = appendPoint(trail_vertices, lastTrail[0]);
+            trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
+            trail_vertices = appendPoint(trail_vertices, window.bike.position);
+
+            var top_bike = new THREE.Vector3(window.bike.position.x, window.bike.position.y + 1, window.bike.position.z)
+            trail_vertices = appendPoint(trail_vertices, top_bike);
+            trail_vertices = appendPoint(trail_vertices, window.bike.position);
+            trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
+            lastTrail[1] = top_bike;
+            lastTrail[0] = new THREE.Vector3(window.bike.position.x, window.bike.position.y, window.bike.position.z);
+
+            trail_geometry.setAttribute( 'position', new THREE.BufferAttribute( trail_vertices, 3 ) );
+            var mesh = new THREE.Mesh( trail_geometry, trail_material );
+
             camera.position.x += currentPlayer["x"] - lastX;
             camera.position.y += currentPlayer["y"] - lastY;
             camera.position.z += currentPlayer["z"] - lastZ;
+            controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
             for (var key in allPlayers) {
                 if (key !== fizzyText.username) {
@@ -270,6 +303,7 @@ window.onload = function() {
                             bevelOffset: 0,
                             bevelSegments: 5
                         });
+
                         geometry.computeBoundingBox();
                         geometry.center();
                         const material = new THREE.MeshPhongMaterial( {color: 0x444444} );
@@ -287,14 +321,9 @@ window.onload = function() {
                 }
             }
 
-            controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
             lastX = currentPlayer["x"];
             lastY = currentPlayer["y"];
             lastZ = currentPlayer["z"];
-
-            // var trail = new THREE.Mesh(trail_geometry, trail_material);
-            // trail.position.set(player.last_trail_x, player.last_trail_y, player.last_trail_z);
-            // scene.add(trail);
         }
 
         renderer.render(scene, camera); 
