@@ -273,15 +273,20 @@ window.onload = function() {
             camera.position.z += currentPlayer["z"] - lastZ;
 
             var angle = lastHeading - currentPlayer["heading"];
-            console.log(angle);
 
             if (Math.abs(angle) >= 0.0001) {
+                if (angle > 0) {
+                    angle = Math.min(angle, 0.04);
+                } else {
+                    angle = Math.max(angle, -0.04);
+                }
+                console.log(angle);
                 var x = [camera.position.x, window.bike.position.x];
                 var y = [camera.position.z, window.bike.position.z];
                 camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
                 camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
 
-                lastHeading = currentPlayer["heading"];
+                lastHeading -= angle;
             }
 
             // Update user's bike
