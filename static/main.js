@@ -273,8 +273,7 @@ window.onload = function() {
             camera.position.z += currentPlayer["z"] - lastZ;
 
             var angle = lastHeading - currentPlayer["heading"];
-
-            if (Math.abs(angle) >= 0.0001) {
+            if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
                 if (angle > 0) {
                     angle = Math.min(angle, 0.04);
                 } else {

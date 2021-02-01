@@ -17,6 +17,7 @@ class Player:
     heading: int
     speed: int
     boost_time: int
+    toggle_controls_rotation: bool
 
 
 class Game():
@@ -71,6 +72,9 @@ def send(username, key_code):
     elif key_code == '16':  # Shift
         TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
         TheGrid.AllPlayers[username].boost_time = 2000
+    elif key_code == '67':  # C
+        TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[username].toggle_controls_rotation
+
     return '{"done": true}'
 
 
@@ -79,11 +83,12 @@ def get(username):
     TheGrid.update()
 
     if username not in TheGrid.AllPlayers.keys():
-        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, TheGrid.Speed, 0)
+        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, TheGrid.Speed, 0, True)
 
     converted = dict()
     for player in TheGrid.AllPlayers.items():
-        converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z, 'heading': player[1].heading}
+        converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
+         'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation}
 
     return json.dumps(converted)
 
