@@ -203,10 +203,18 @@ window.onload = function() {
     gui.add(fizzyText, "submit_name").name("Enter game");
 
 
+    // Keys events
     document.addEventListener("keydown", onDocumentKeyDown, false);
     function onDocumentKeyDown(event) {
         if (window.gameBegin) {
-            httpGet('/send_data/' + fizzyText.username + '/' + event.which);
+            httpGet('/keydown/' + fizzyText.username + '/' + event.which);
+        }
+    }
+
+    document.addEventListener("keyup", onDocumentKeyUp, false);
+    function onDocumentKeyUp(event) {
+        if (window.gameBegin) {
+            httpGet('/keyup/' + fizzyText.username + '/' + event.which);
         }
     }
 
@@ -279,7 +287,6 @@ window.onload = function() {
                 } else {
                     angle = Math.max(angle, -0.04);
                 }
-                console.log(angle);
                 var x = [camera.position.x, window.bike.position.x];
                 var y = [camera.position.z, window.bike.position.z];
                 camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
@@ -291,6 +298,7 @@ window.onload = function() {
             // Update user's bike
             window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
             window.bike.rotation.y = currentPlayer["heading"];
+            window.bike.rotation.z = -currentPlayer["rotation"];
             controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
 
@@ -299,7 +307,11 @@ window.onload = function() {
             trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
             trail_vertices = appendPoint(trail_vertices, window.bike.position);
 
-            var top_bike = new THREE.Vector3(window.bike.position.x, window.bike.position.y + 1, window.bike.position.z)
+            var a = (Math.PI / 2) - (currentPlayer["heading"]);
+            var top_bike = new THREE.Vector3(window.bike.position.x + Math.sin(currentPlayer["rotation"] * Math.sin(a)),
+                window.bike.position.y + Math.cos(currentPlayer["rotation"]), // Height
+                window.bike.position.z - Math.sin(currentPlayer["rotation"]) * Math.cos(a))
+
             trail_vertices = appendPoint(trail_vertices, top_bike);
             trail_vertices = appendPoint(trail_vertices, window.bike.position);
             trail_vertices = appendPoint(trail_vertices, lastTrail[1]);

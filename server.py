@@ -11,20 +11,21 @@ app = Flask(__name__, static_url_path='')
 @dataclass
 class Player:
     player_name: str
-    x: int
-    y: int
-    z: int
-    heading: int
-    speed: int
-    boost_time: int
-    toggle_controls_rotation: bool
-
+    speed: float
+    x: float = 0
+    y: float = 0
+    z: float = 0
+    heading: float = 0
+    rotation: float = 0
+    boost_time: int = 0
+    toggle_controls_rotation: bool = True
+    max_turn_angle: float = 0
 
 class Game():
     def __init__(self) -> None:
         self.AllPlayers = dict()
         self.LastTime = int(time() * 1000) # Current time in milliseconds
-        self.TurnAngle = 5 * (math.pi / 180) # Default is 5
+        self.TurnSpeed = 0.05
         self.Speed = 0.03
 
     def collisionChecker(self):
@@ -37,7 +38,17 @@ class Game():
                 self.AllPlayers[bike_key].speed = TheGrid.Speed
             else:
                 self.AllPlayers[bike_key].boost_time -= (currentTime - self.LastTime)
+
+            if self.AllPlayers[bike_key].max_turn_angle > 0:
+                self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.02, self.AllPlayers[bike_key].max_turn_angle)
+            else:
+                self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.02, self.AllPlayers[bike_key].max_turn_angle)
+
+
+            self.AllPlayers[bike_key].heading += (currentTime - self.LastTime) * self.AllPlayers[bike_key].rotation * 0.001
+
             speed = (currentTime - self.LastTime) * self.AllPlayers[bike_key].speed
+
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
 
@@ -61,14 +72,22 @@ def check(username):
     return ['{"status": "false"}', '{"status": "true"}'][username in TheGrid.AllPlayers.keys()]
 
 
-@app.route('/send_data/<username>/<key_code>')
-def send(username, key_code):
-    TheGrid.update()
-
+@app.route('/keyup/<username>/<key_code>')
+def up(username, key_code):
     if key_code == '65':  # A
-        TheGrid.AllPlayers[username].heading += TheGrid.TurnAngle
+        TheGrid.AllPlayers[username].max_turn_angle = -0.0001
     elif key_code == '68':  # D
-        TheGrid.AllPlayers[username].heading -= TheGrid.TurnAngle
+        TheGrid.AllPlayers[username].max_turn_angle = 0.0001
+
+    return '{"done": true}'
+
+
+@app.route('/keydown/<username>/<key_code>')
+def down(username, key_code):
+    if key_code == '65':  # A
+        TheGrid.AllPlayers[username].max_turn_angle = 0.7
+    elif key_code == '68':  # D
+        TheGrid.AllPlayers[username].max_turn_angle = -0.7
     elif key_code == '16':  # Shift
         TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
         TheGrid.AllPlayers[username].boost_time = 2000
@@ -83,12 +102,14 @@ def get(username):
     TheGrid.update()
 
     if username not in TheGrid.AllPlayers.keys():
-        TheGrid.AllPlayers[username] = Player(username, 0, 0, 0, 0, TheGrid.Speed, 0, True)
+        TheGrid.AllPlayers[username] = Player(username, TheGrid.Speed)
 
+    # Convert to JSON
     converted = dict()
     for player in TheGrid.AllPlayers.items():
         converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
-         'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation}
+         'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
+         'rotation': player[1].rotation}
 
     return json.dumps(converted)
 
