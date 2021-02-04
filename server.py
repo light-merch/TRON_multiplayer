@@ -4,9 +4,14 @@ import json
 import math
 from time import time
 
+from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, render_template, request
 
+async_mode = None
 app = Flask(__name__, static_url_path='')
+app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app, async_mode=async_mode)
+
 
 @dataclass
 class Player:
@@ -20,6 +25,7 @@ class Player:
     boost_time: int = 0
     toggle_controls_rotation: bool = True
     max_turn_angle: float = 0
+
 
 class Game():
     def __init__(self) -> None:
@@ -72,32 +78,35 @@ def check(username):
     return ['{"status": "false"}', '{"status": "true"}'][username in TheGrid.AllPlayers.keys()]
 
 
-@app.route('/keyup/<username>/<key_code>')
-def up(username, key_code):
-    if key_code == '65':  # A
+@socketio.on('keyup')
+def up(data):
+    username = data['user']
+    if data['key'] == 65:  # A
         TheGrid.AllPlayers[username].max_turn_angle = -0.0001
-    elif key_code == '68':  # D
+    elif data['key'] == 68:  # D
         TheGrid.AllPlayers[username].max_turn_angle = 0.0001
 
-    return '{"done": true}'
 
-
-@app.route('/keydown/<username>/<key_code>')
-def down(username, key_code):
-    if key_code == '65':  # A
+@socketio.on('keydown')
+def down(data):
+    username = data['user']
+    if data['key'] == 65:  # A
         TheGrid.AllPlayers[username].max_turn_angle = 0.7
-    elif key_code == '68':  # D
+    elif data['key'] == 68:  # D
         TheGrid.AllPlayers[username].max_turn_angle = -0.7
-    elif key_code == '16':  # Shift
+    elif data['key'] == 16:  # Shift
         TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
         TheGrid.AllPlayers[username].boost_time = 2000
-    elif key_code == '67':  # C
+    elif data['key'] == 67:  # C
         TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[username].toggle_controls_rotation
 
-    return '{"done": true}'
+
+@socketio.on('message')
+def handle_message(data):
+    print('received message: ' + data)
 
 
-@app.route('/get_data/<username>')
+@socketio.on('get_data')
 def get(username):
     TheGrid.update()
 
@@ -111,10 +120,10 @@ def get(username):
          'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
          'rotation': player[1].rotation}
 
-    return json.dumps(converted)
+    socketio.emit('update', json.dumps(converted))
 
 
 
 if __name__ == "__main__":
     TheGrid = Game()
-    app.run(port=5002)
+    socketio.run(app, port=5002)

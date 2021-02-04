@@ -203,18 +203,122 @@ window.onload = function() {
     gui.add(fizzyText, "submit_name").name("Enter game");
 
 
+    var socket = io();
+    socket.on('connect', function() {
+        socket.emit('message', 'Im connected!');
+    });
+
+    socket.on('update', function(msg) {
+        // Update camera
+        allPlayers = JSON.parse(msg);
+        console.log(allPlayers);
+        currentPlayer = allPlayers[fizzyText.username];
+        camera.position.x += currentPlayer["x"] - lastX;
+        camera.position.y += currentPlayer["y"] - lastY;
+        camera.position.z += currentPlayer["z"] - lastZ;
+
+        var angle = lastHeading - currentPlayer["heading"];
+        if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
+            if (angle > 0) {
+                angle = Math.min(angle, 0.04);
+            } else {
+                angle = Math.max(angle, -0.04);
+            }
+            var x = [camera.position.x, window.bike.position.x];
+            var y = [camera.position.z, window.bike.position.z];
+            camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
+            camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
+
+            lastHeading -= angle;
+        }
+
+        // Update user's bike
+        window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
+        window.bike.rotation.y = currentPlayer["heading"];
+        window.bike.rotation.z = -currentPlayer["rotation"];
+        controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
+
+
+        // Update trail
+        trail_vertices = appendPoint(trail_vertices, lastTrail[0]);
+        trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
+        trail_vertices = appendPoint(trail_vertices, window.bike.position);
+
+        var a = (Math.PI / 2) - (currentPlayer["heading"]);
+        var top_bike = new THREE.Vector3(window.bike.position.x + Math.sin(currentPlayer["rotation"] * Math.sin(a)),
+            window.bike.position.y + Math.cos(currentPlayer["rotation"]), // Height
+            window.bike.position.z - Math.sin(currentPlayer["rotation"]) * Math.cos(a))
+
+        trail_vertices = appendPoint(trail_vertices, top_bike);
+        trail_vertices = appendPoint(trail_vertices, window.bike.position);
+        trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
+
+        lastTrail[1] = top_bike;
+        lastTrail[0] = new THREE.Vector3(window.bike.position.x, window.bike.position.y, window.bike.position.z);
+
+        trail_geometry.setAttribute( 'position', new THREE.BufferAttribute( trail_vertices, 3 ) );
+
+
+
+        // Display all players
+        for (var key in allPlayers) {
+            if (key !== fizzyText.username) {
+                if (vehicles[key] === undefined) {
+                    var copy = window.template.clone();
+                    scene.add(copy);
+                    vehicles[key] = copy;
+                    window.key = key;
+
+                    // Display usernames
+                    const geometry = new THREE.TextGeometry(window.key, {
+                        font: window.font,
+                        size: 80,
+                        height: 3,
+                        curveSegments: 12,
+                        bevelEnabled: true,
+                        bevelThickness: 1,
+                        bevelSize: 1,
+                        bevelOffset: 0,
+                        bevelSegments: 5
+                    });
+
+                    geometry.computeBoundingBox();
+                    geometry.center();
+                    const material = new THREE.MeshPhongMaterial( {color: 0x444444} );
+                    var text = new THREE.Mesh(geometry, material);
+
+                    text.scale.set(0.015, 0.015, 0.015);
+                    window.names[window.key] = text;
+                    scene.add(text);
+                } else {
+                    // Update players cars
+                    vehicles[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
+                    vehicles[key].rotation.y = allPlayers[key].heading;
+                    window.names[key].position.set(allPlayers[key].x, allPlayers[key].y + 3, allPlayers[key].z);
+                    // Rotate username to face user
+                    window.names[key].lookAt(window.bike.position.x, window.bike.position.y + 3, window.bike.position.z);
+                }
+            }
+        }
+
+        lastX = currentPlayer["x"];
+        lastY = currentPlayer["y"];
+        lastZ = currentPlayer["z"];
+    });
+
+
     // Keys events
     document.addEventListener("keydown", onDocumentKeyDown, false);
     function onDocumentKeyDown(event) {
         if (window.gameBegin) {
-            httpGet('/keydown/' + fizzyText.username + '/' + event.which);
+            socket.emit('keydown', {'user': fizzyText.username, 'key': event.which});
         }
     }
 
     document.addEventListener("keyup", onDocumentKeyUp, false);
     function onDocumentKeyUp(event) {
         if (window.gameBegin) {
-            httpGet('/keyup/' + fizzyText.username + '/' + event.which);
+            socket.emit('keyup', {'user': fizzyText.username, 'key': event.which});
         }
     }
 
@@ -271,102 +375,9 @@ window.onload = function() {
 
         // Check if bike isn't created yet
         if (window.bike !== undefined) {
-            // Get data about all players
-            allPlayers = httpGet('/get_data/' + fizzyText.username);
-
-            // Update camera
-            currentPlayer = allPlayers[fizzyText.username];
-            camera.position.x += currentPlayer["x"] - lastX;
-            camera.position.y += currentPlayer["y"] - lastY;
-            camera.position.z += currentPlayer["z"] - lastZ;
-
-            var angle = lastHeading - currentPlayer["heading"];
-            if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
-                if (angle > 0) {
-                    angle = Math.min(angle, 0.04);
-                } else {
-                    angle = Math.max(angle, -0.04);
-                }
-                var x = [camera.position.x, window.bike.position.x];
-                var y = [camera.position.z, window.bike.position.z];
-                camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
-                camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
-
-                lastHeading -= angle;
-            }
-
-            // Update user's bike
-            window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
-            window.bike.rotation.y = currentPlayer["heading"];
-            window.bike.rotation.z = -currentPlayer["rotation"];
-            controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
-
-
-            // Update trail
-            trail_vertices = appendPoint(trail_vertices, lastTrail[0]);
-            trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
-            trail_vertices = appendPoint(trail_vertices, window.bike.position);
-
-            var a = (Math.PI / 2) - (currentPlayer["heading"]);
-            var top_bike = new THREE.Vector3(window.bike.position.x + Math.sin(currentPlayer["rotation"] * Math.sin(a)),
-                window.bike.position.y + Math.cos(currentPlayer["rotation"]), // Height
-                window.bike.position.z - Math.sin(currentPlayer["rotation"]) * Math.cos(a))
-
-            trail_vertices = appendPoint(trail_vertices, top_bike);
-            trail_vertices = appendPoint(trail_vertices, window.bike.position);
-            trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
-
-            lastTrail[1] = top_bike;
-            lastTrail[0] = new THREE.Vector3(window.bike.position.x, window.bike.position.y, window.bike.position.z);
-
-            trail_geometry.setAttribute( 'position', new THREE.BufferAttribute( trail_vertices, 3 ) );
-
-
-
-            // Display all players
-            for (var key in allPlayers) {
-                if (key !== fizzyText.username) {
-                    if (vehicles[key] === undefined) {
-                        var copy = window.template.clone();
-                        scene.add(copy);
-                        vehicles[key] = copy;
-                        window.key = key;
-
-                        // Display usernames
-                        const geometry = new THREE.TextGeometry(window.key, {
-                            font: window.font,
-                            size: 80,
-                            height: 3,
-                            curveSegments: 12,
-                            bevelEnabled: true,
-                            bevelThickness: 1,
-                            bevelSize: 1,
-                            bevelOffset: 0,
-                            bevelSegments: 5
-                        });
-
-                        geometry.computeBoundingBox();
-                        geometry.center();
-                        const material = new THREE.MeshPhongMaterial( {color: 0x444444} );
-                        var text = new THREE.Mesh(geometry, material);
-
-                        text.scale.set(0.015, 0.015, 0.015);
-                        window.names[window.key] = text;
-                        scene.add(text);
-                    } else {
-                        // Update players cars
-                        vehicles[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
-                        vehicles[key].rotation.y = allPlayers[key].heading;
-                        window.names[key].position.set(allPlayers[key].x, allPlayers[key].y + 3, allPlayers[key].z);
-                        // Rotate username to face user
-                        window.names[key].lookAt(window.bike.position.x, window.bike.position.y + 3, window.bike.position.z);
-                    }
-                }
-            }
-
-            lastX = currentPlayer["x"];
-            lastY = currentPlayer["y"];
-            lastZ = currentPlayer["z"];
+            // Request data for all players
+            socket.emit('get_data', fizzyText.username);
+            // allPlayers = httpGet('/get_data/' + fizzyText.username);
         }
 
         renderer.render(scene, camera); 
