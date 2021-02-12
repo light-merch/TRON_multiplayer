@@ -10,7 +10,6 @@ from flask import Flask, send_from_directory, render_template
 
 async_mode = None
 app = Flask(__name__, static_url_path='')
-app.config['SECRET_KEY'] = '#&=4t7TE'
 socketio = SocketIO(app, async_mode=async_mode)
 
 

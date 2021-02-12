@@ -6,7 +6,6 @@ import { MTLLoader } from "./MTLLoader.js";
 import { DDSLoader } from "./DDSLoader.js";
 
 
-var socket = io("http://127.0.0.1:5002");
 
 
 function httpGet(Url) {
@@ -73,7 +72,8 @@ function init() {
         if ( xhr.lengthComputable ) {
 
             const percentComplete = xhr.loaded / xhr.total * 100;
-            console.log( Math.round(percentComplete, 2) + "% downloaded" );
+            // TODO: create a loading screen
+            // console.log( Math.round(percentComplete, 2) + "% downloaded" );
 
         }
 
@@ -157,6 +157,8 @@ function generateUsername(length) {
 
 
 window.onload = function() {
+    var socket = io("http://127.0.0.1:5002");
+
     const FizzyText = function () {
         this.username = generateUsername(6);
         this.error = "";
@@ -209,15 +211,12 @@ window.onload = function() {
 
 
     socket.on("connect", function() {
-        console.log("connected");
-        socket.emit("message", "Im connected!");
+        socket.emit("message", "I am connected");
     });
 
     socket.on("update", function(msg) {
         // Update camera
-        console.log(msg);
         allPlayers = JSON.parse(msg);
-        console.log(allPlayers);
         currentPlayer = allPlayers[fizzyText.username];
         camera.position.x += currentPlayer["x"] - lastX;
         camera.position.y += currentPlayer["y"] - lastY;
