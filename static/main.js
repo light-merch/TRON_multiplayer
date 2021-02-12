@@ -182,6 +182,8 @@ window.onload = function() {
                 }
             } else {
                 window.gameBegin = true;
+                socket.emit('add_user', fizzyText.username);
+                console.log('sent');
                 GameLoop();
                 gui.destroy();
             }
@@ -203,13 +205,15 @@ window.onload = function() {
     gui.add(fizzyText, "submit_name").name("Enter game");
 
 
-    var socket = io();
+    var socket = io('http://127.0.0.1:5002');
     socket.on('connect', function() {
+        console.log('connected');
         socket.emit('message', 'Im connected!');
     });
 
     socket.on('update', function(msg) {
         // Update camera
+        console.log(msg);
         allPlayers = JSON.parse(msg);
         console.log(allPlayers);
         currentPlayer = allPlayers[fizzyText.username];
@@ -372,13 +376,6 @@ window.onload = function() {
         requestAnimationFrame(GameLoop);
         stats.begin();
         controls.update();
-
-        // Check if bike isn't created yet
-        if (window.bike !== undefined) {
-            // Request data for all players
-            socket.emit('get_data', fizzyText.username);
-            // allPlayers = httpGet('/get_data/' + fizzyText.username);
-        }
 
         renderer.render(scene, camera); 
         stats.end();

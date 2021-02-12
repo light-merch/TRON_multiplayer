@@ -2,7 +2,11 @@ import os
 from dataclasses import dataclass
 import json
 import math
-from time import time
+import asyncio
+import time
+from multiprocessing import Process
+from threading import Thread
+import eventlet
 
 from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, render_template, request
@@ -27,10 +31,11 @@ class Player:
     max_turn_angle: float = 0
 
 
+
 class Game():
     def __init__(self) -> None:
         self.AllPlayers = dict()
-        self.LastTime = int(time() * 1000) # Current time in milliseconds
+        self.LastTime = int(time.time() * 1000) # Current time in milliseconds
         self.TurnSpeed = 0.05
         self.Speed = 0.03
 
@@ -38,7 +43,7 @@ class Game():
         pass
 
     def update(self):
-        currentTime = int(time() * 1000) # Current time in milliseconds
+        currentTime = int(time.time() * 1000) # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():
             if self.AllPlayers[bike_key].boost_time <= 0:
                 self.AllPlayers[bike_key].speed = TheGrid.Speed
@@ -62,17 +67,19 @@ class Game():
 
 
 
-# Server part
+# Main page
 @app.route('/')
 def root():
     return render_template('main.html')
 
 
+# Get files from server (etc. libs)
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
 
 
+# Used for checking a name entered by the user
 @app.route('/check/<username>')
 def check(username):
     return ['{"status": "false"}', '{"status": "true"}'][username in TheGrid.AllPlayers.keys()]
@@ -106,24 +113,38 @@ def handle_message(data):
     print('received message: ' + data)
 
 
-@socketio.on('get_data')
-def get(username):
-    TheGrid.update()
-
+# When user chooses a name he submits his final name and we add him to the table
+@socketio.on('add_user')
+def add(username):
+    print('New user')
     if username not in TheGrid.AllPlayers.keys():
         TheGrid.AllPlayers[username] = Player(username, TheGrid.Speed)
 
-    # Convert to JSON
-    converted = dict()
-    for player in TheGrid.AllPlayers.items():
-        converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
-         'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
-         'rotation': player[1].rotation}
 
-    socketio.emit('update', json.dumps(converted))
 
+# We start a parrallel thread for game logics
+def GameLoop(name):
+    while True:
+        TheGrid.update()
+
+        # Convert to JSON
+        converted = dict()
+        for player in TheGrid.AllPlayers.items():
+            converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
+             'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
+             'rotation': player[1].rotation}
+
+        if len(TheGrid.AllPlayers) != 0:
+            socketio.emit('update', json.dumps(converted))
+
+        time.sleep(0.01)
 
 
 if __name__ == "__main__":
     TheGrid = Game()
+    eventlet.monkey_patch()
+
+    x = Thread(target=GameLoop, args=(1,))
+    x.start()
+
     socketio.run(app, port=5002)
