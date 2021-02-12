@@ -182,7 +182,7 @@ window.onload = function() {
                 }
             } else {
                 window.gameBegin = true;
-                socket.emit('add_user', fizzyText.username);
+                socket.emit("add_user", fizzyText.username);
                 console.log('sent');
                 GameLoop();
                 gui.destroy();
