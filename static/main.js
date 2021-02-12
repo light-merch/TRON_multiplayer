@@ -1,9 +1,12 @@
 import * as THREE from "./three.module.js";
 
 import { OrbitControls } from "./OrbitControls.js";
-import { OBJLoader } from './OBJLoader.js';
-import { MTLLoader } from './MTLLoader.js';
-import { DDSLoader } from './DDSLoader.js';
+import { OBJLoader } from "./OBJLoader.js";
+import { MTLLoader } from "./MTLLoader.js";
+import { DDSLoader } from "./DDSLoader.js";
+
+
+var socket = io("http://127.0.0.1:5002");
 
 
 function httpGet(Url) {
@@ -14,10 +17,10 @@ function httpGet(Url) {
 }
 
 
-function fileGet(file_name) {
+function fileGet(fileName) {
     var rawFile = new XMLHttpRequest();
     var allText = "";
-    rawFile.open("GET", file_name, false);
+    rawFile.open("GET", fileName, false);
     rawFile.onreadystatechange = function () {
         if(rawFile.readyState === 4) {
             if(rawFile.status === 200 || rawFile.status === 0) {
@@ -70,7 +73,7 @@ function init() {
         if ( xhr.lengthComputable ) {
 
             const percentComplete = xhr.loaded / xhr.total * 100;
-            console.log( Math.round(percentComplete, 2) + '% downloaded' );
+            console.log( Math.round(percentComplete, 2) + "% downloaded" );
 
         }
 
@@ -81,15 +84,15 @@ function init() {
     manager.addHandler(/\.dds$/i, new DDSLoader());
 
     new MTLLoader(manager)
-        .setPath('models/')
-        .load( 'bike.mtl', function (materials) {
+        .setPath("models/")
+        .load( "bike.mtl", function (materials) {
 
             materials.preload();
 
             new OBJLoader(manager)
                 .setMaterials( materials )
-                .setPath('models/')
-                .load( 'bike.obj', function (object) {
+                .setPath("models/")
+                .load( "bike.obj", function (object) {
                     var pivotPoint = new THREE.Object3D();
                     pivotPoint.add(object);
                     object.position.set(0, -0.3, 2);
@@ -102,15 +105,15 @@ function init() {
         });
 
     new MTLLoader(manager)
-        .setPath('models/')
-        .load( 'arena.mtl', function (materials) {
+        .setPath("models/")
+        .load( "arena.mtl", function (materials) {
 
             materials.preload();
 
             new OBJLoader(manager)
                 .setMaterials( materials )
-                .setPath('models/')
-                .load( 'arena.obj', function (object) {
+                .setPath("models/")
+                .load( "arena.obj", function (object) {
                     window.arena = object;
                     scene.add(window.arena);
                     window.arena.scale.set(40, 1, 40);
@@ -134,19 +137,19 @@ function init() {
 
 
 function generateUsername(length) {
-    for (const name of ['flynn', 'tron', 'clu', 'sam', 'quorra', 'rinzler']) {
-        if (httpGet('/check/' + name)['status'] === 'false') {
+    for (const name of ["flynn", "tron", "clu", "sam", "quorra", "rinzler"]) {
+        if (httpGet("/check/" + name)["status"] === "false") {
             return name;
         }
     }
 
-    var result = '';
+    var result = "";
     while (true) {
-        var characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        var characters = "abcdefghijklmnopqrstuvwxyz0123456789";
         for (var i = 0; i < length; i++) {
             result += characters.charAt(Math.floor(Math.random() * characters.length));
         }
-        if (httpGet('/check/' + result)['status'] === 'false') {
+        if (httpGet("/check/" + result)["status"] === "false") {
             return result;
         }
     }
@@ -164,9 +167,9 @@ window.onload = function() {
             // create a global audio source
             const sound = new THREE.Audio( listener );
 
-            // load a sound and set it as the Audio object's buffer
+            // load a sound and set it as the Audio object"s buffer
             const audioLoader = new THREE.AudioLoader();
-            audioLoader.load( 'sounds/tron_legacy.mp3', function(buffer) {
+            audioLoader.load( "sounds/tron_legacy.mp3", function(buffer) {
                 sound.setBuffer( buffer );
                 sound.setLoop(true);
                 sound.setVolume(0.5);
@@ -174,7 +177,7 @@ window.onload = function() {
             sound.play();
 
             this.username = this.username.toLowerCase();
-            if (httpGet('/check/' + this.username)['status'] === 'true' || this.username.length >= 30) {
+            if (httpGet("/check/" + this.username)["status"] === "true" || this.username.length >= 30) {
                 if (this.error === "") {
                     this.error = "This username is already taken"
                     var e = gui.add(fizzyText, "error").name("Error");
@@ -183,7 +186,7 @@ window.onload = function() {
             } else {
                 window.gameBegin = true;
                 socket.emit("add_user", fizzyText.username);
-                console.log('sent');
+                console.log("sent");
                 GameLoop();
                 gui.destroy();
             }
@@ -205,13 +208,12 @@ window.onload = function() {
     gui.add(fizzyText, "submit_name").name("Enter game");
 
 
-    var socket = io('http://127.0.0.1:5002');
-    socket.on('connect', function() {
-        console.log('connected');
-        socket.emit('message', 'Im connected!');
+    socket.on("connect", function() {
+        console.log("connected");
+        socket.emit("message", "Im connected!");
     });
 
-    socket.on('update', function(msg) {
+    socket.on("update", function(msg) {
         // Update camera
         console.log(msg);
         allPlayers = JSON.parse(msg);
@@ -236,7 +238,7 @@ window.onload = function() {
             lastHeading -= angle;
         }
 
-        // Update user's bike
+        // Update user"s bike
         window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
         window.bike.rotation.y = currentPlayer["heading"];
         window.bike.rotation.z = -currentPlayer["rotation"];
@@ -260,7 +262,7 @@ window.onload = function() {
         lastTrail[1] = top_bike;
         lastTrail[0] = new THREE.Vector3(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
-        trail_geometry.setAttribute( 'position', new THREE.BufferAttribute( trail_vertices, 3 ) );
+        trail_geometry.setAttribute( "position", new THREE.BufferAttribute( trail_vertices, 3 ) );
 
 
 
@@ -315,14 +317,14 @@ window.onload = function() {
     document.addEventListener("keydown", onDocumentKeyDown, false);
     function onDocumentKeyDown(event) {
         if (window.gameBegin) {
-            socket.emit('keydown', {'user': fizzyText.username, 'key': event.which});
+            socket.emit("keydown", {"user": fizzyText.username, "key": event.which});
         }
     }
 
     document.addEventListener("keyup", onDocumentKeyUp, false);
     function onDocumentKeyUp(event) {
         if (window.gameBegin) {
-            socket.emit('keyup', {'user': fizzyText.username, 'key': event.which});
+            socket.emit("keyup", {"user": fizzyText.username, "key": event.which});
         }
     }
 
@@ -341,7 +343,7 @@ window.onload = function() {
     var lastBufferIndex = 0;
 
     const loader = new THREE.FontLoader();
-    loader.load( 'models/font.json', function (font) {
+    loader.load( "models/font.json", function (font) {
         window.font = font;
     });
 
@@ -358,7 +360,7 @@ window.onload = function() {
     }
 
     // Trail init
-    trail_geometry.setAttribute( 'position', new THREE.BufferAttribute( trail_vertices, 3 ) );
+    trail_geometry.setAttribute( "position", new THREE.BufferAttribute( trail_vertices, 3 ) );
     var trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2 } );
     var mesh = new THREE.Mesh( trail_geometry, trail_material );
     scene.add(mesh);

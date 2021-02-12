@@ -1,17 +1,16 @@
-import os
-from dataclasses import dataclass
 import json
 import math
 import time
-from threading import Thread
 import eventlet
+from threading import Thread
+from dataclasses import dataclass
 
 from flask_socketio import SocketIO
-from flask import Flask, send_from_directory, render_template, request
+from flask import Flask, send_from_directory, render_template
 
 async_mode = None
 app = Flask(__name__, static_url_path='')
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = '#&=4t7TE'
 socketio = SocketIO(app, async_mode=async_mode)
 
 
