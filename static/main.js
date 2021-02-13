@@ -157,7 +157,7 @@ function generateUsername(length) {
 
 
 window.onload = function() {
-    var socket = io("http://127.0.0.1:5002");
+    var socket = io("http://" + window.location.hostname + ":" + window.location.port);
 
     const FizzyText = function () {
         this.username = generateUsername(6);
@@ -170,13 +170,13 @@ window.onload = function() {
             const sound = new THREE.Audio( listener );
 
             // load a sound and set it as the Audio object"s buffer
-            const audioLoader = new THREE.AudioLoader();
+            /* const audioLoader = new THREE.AudioLoader();
             audioLoader.load( "sounds/tron_legacy.mp3", function(buffer) {
                 sound.setBuffer( buffer );
                 sound.setLoop(true);
                 sound.setVolume(0.5);
             });
-            sound.play();
+            sound.play(); */
 
             this.username = this.username.toLowerCase();
             if (httpGet("/check/" + this.username)["status"] === "true" || this.username.length >= 30) {

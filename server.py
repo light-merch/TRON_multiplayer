@@ -143,4 +143,4 @@ if __name__ == "__main__":
     x = Thread(target=GameLoop, args=(1,))
     x.start()
 
-    socketio.run(app, port=5002)
+    socketio.run(app, host='192.168.1.170', port=5002)
