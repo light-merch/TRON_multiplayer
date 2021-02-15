@@ -7,6 +7,8 @@ import { DDSLoader } from "./DDSLoader.js";
 
 
 
+var socket = io("http://" + window.location.hostname + ":" + window.location.port);
+
 
 function httpGet(Url) {
     var xmlHttp = new XMLHttpRequest();
@@ -68,15 +70,11 @@ function init() {
     });
 
     const onProgress = function ( xhr ) {
-
         if ( xhr.lengthComputable ) {
-
             const percentComplete = xhr.loaded / xhr.total * 100;
             // TODO: create a loading screen
             // console.log( Math.round(percentComplete, 2) + "% downloaded" );
-
         }
-
     };
     const onError = function () { };
 
@@ -155,10 +153,12 @@ function generateUsername(length) {
     }
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 
 window.onload = function() {
-    var socket = io("http://" + window.location.hostname + ":" + window.location.port);
-
     const FizzyText = function () {
         this.username = generateUsername(6);
         this.error = "";
@@ -179,9 +179,10 @@ window.onload = function() {
             sound.play(); */
 
             this.username = this.username.toLowerCase();
-            if (httpGet("/check/" + this.username)["status"] === "true" || this.username.length >= 30) {
+            var res = httpGet("/check/" + this.username);
+            if (res["status"] === "true" || this.username.length >= 30 || res["error"] === "true") {
                 if (this.error === "") {
-                    this.error = "This username is already taken"
+                    this.error = "This username is already taken or contains Non-English letters"
                     var e = gui.add(fizzyText, "error").name("Error");
                     e.domElement.style.pointerEvents = "none";
                 }
@@ -203,7 +204,7 @@ window.onload = function() {
     var gui = new dat.GUI({
         load: JSON,
         preset: "Flow",
-        width: 400
+        width: 700
     });
 
     gui.add(fizzyText, "username").name("Enter username");
@@ -215,7 +216,10 @@ window.onload = function() {
     });
 
     socket.on("update", function(msg) {
-        // Update camera
+        if (!window.gameBegin) {
+            return;
+        }
+
         allPlayers = JSON.parse(msg);
         currentPlayer = allPlayers[fizzyText.username];
         camera.position.x += currentPlayer["x"] - lastX;
@@ -381,4 +385,10 @@ window.onload = function() {
         renderer.render(scene, camera); 
         stats.end();
     };
+
+    window.onunload = function() {
+        console.log('hello there');
+        socket.emit("remove_user", fizzyText.username);
+        sleep(1000);
+    }
 };
