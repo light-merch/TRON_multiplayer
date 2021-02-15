@@ -17,6 +17,10 @@ socketio = SocketIO(app, async_mode=async_mode)
 class Player:
     player_name: str
     speed: float
+    x_trail: list
+    y_trail: list
+    z_trail: list
+
     x: float = 0
     y: float = 0
     z: float = 0
@@ -35,8 +39,15 @@ class Game():
         self.TurnSpeed = 0.05
         self.Speed = 0.03
 
-    def collisionChecker(self):
-        pass
+
+    def collisionCheck(self):
+        for bike_key in self.AllPlayers.keys():
+            self.AllPlayers[bike_key].x_trail.append(self.AllPlayers[bike_key].x)
+            self.AllPlayers[bike_key].y_trail.append(self.AllPlayers[bike_key].y)
+            self.AllPlayers[bike_key].z_trail.append(self.AllPlayers[bike_key].z)
+
+
+
 
     def update(self):
         currentTime = int(time.time() * 1000) # Current time in milliseconds
@@ -114,7 +125,7 @@ def handle_message(data):
 def add(username):
     print('New user')
     if username not in TheGrid.AllPlayers.keys():
-        TheGrid.AllPlayers[username] = Player(username, TheGrid.Speed)
+        TheGrid.AllPlayers[username] = Player(username, TheGrid.Speed, [], [], [])
 
 
 
@@ -122,6 +133,7 @@ def add(username):
 def GameLoop(name):
     while True:
         TheGrid.update()
+        TheGrid.collisionCheck()
 
         # Convert to JSON
         converted = dict()
