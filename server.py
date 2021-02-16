@@ -135,6 +135,7 @@ def add(username):
     if username not in TheGrid.AllPlayers.keys():
         TheGrid.AllPlayers[username] = Player(username, TheGrid.Speed)
 
+
 @socketio.on('remove_user')
 def removeUser(username):
     print('remove_user')

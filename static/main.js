@@ -5,6 +5,7 @@ import { OBJLoader } from "./OBJLoader.js";
 import { MTLLoader } from "./MTLLoader.js";
 import { DDSLoader } from "./DDSLoader.js";
 
+import * as GRID from "./methods.js"
 
 
 var socket = io("http://" + window.location.hostname + ":" + window.location.port);
@@ -34,20 +35,6 @@ function fileGet(fileName) {
 }
 
 
-function initStats(Stats) {
-    var stats = new Stats();
-    stats.setMode(0); // 0: fps, 1: ms
-
-    // Align top-left
-    stats.domElement.style.position = "absolute";
-    stats.domElement.style.left = "0px";
-    stats.domElement.style.top = "0px";
-    document.body.appendChild( stats.dom );
-    return stats;
-}
-
-
-
 function init() {
     var scene = new THREE.Scene();
     var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -58,8 +45,6 @@ function init() {
     document.body.appendChild(renderer.domElement);
     var controls = new OrbitControls(camera, renderer.domElement);
     controls.enableKeys = false;
-    // controls.autoRotate = true;
-    // controls.autoRotateSpeed = 3;
 
     window.addEventListener("resize", function () {
         var width = window.innerWidth;
@@ -134,33 +119,9 @@ function init() {
 }
 
 
-function generateUsername(length) {
-    for (const name of ["flynn", "tron", "clu", "sam", "quorra", "rinzler"]) {
-        if (httpGet("/check/" + name)["status"] === "false") {
-            return name;
-        }
-    }
-
-    var result = "";
-    while (true) {
-        var characters = "abcdefghijklmnopqrstuvwxyz0123456789";
-        for (var i = 0; i < length; i++) {
-            result += characters.charAt(Math.floor(Math.random() * characters.length));
-        }
-        if (httpGet("/check/" + result)["status"] === "false") {
-            return result;
-        }
-    }
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-
 window.onload = function() {
     const FizzyText = function () {
-        this.username = generateUsername(6);
+        this.username = GRID.generateUsername(6);
         this.error = "";
 
         this.submit_name = function () {
@@ -197,7 +158,7 @@ window.onload = function() {
     };
 
 
-    var stats = initStats(Stats);
+    var stats = GRID.initStats(Stats);
 
     // Dat Gui controls setup
     var fizzyText = new FizzyText();
@@ -222,6 +183,9 @@ window.onload = function() {
 
         allPlayers = JSON.parse(msg);
         currentPlayer = allPlayers[fizzyText.username];
+        if (currentPlayer === undefined) {
+            return;
+        }
         camera.position.x += currentPlayer["x"] - lastX;
         camera.position.y += currentPlayer["y"] - lastY;
         camera.position.z += currentPlayer["z"] - lastZ;
@@ -248,29 +212,52 @@ window.onload = function() {
         controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
 
-        // Update trail
-        trail_vertices = appendPoint(trail_vertices, lastTrail[0]);
-        trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
-        trail_vertices = appendPoint(trail_vertices, window.bike.position);
-
-        var a = (Math.PI / 2) - (currentPlayer["heading"]);
-        var top_bike = new THREE.Vector3(window.bike.position.x + Math.sin(currentPlayer["rotation"] * Math.sin(a)),
-            window.bike.position.y + Math.cos(currentPlayer["rotation"]), // Height
-            window.bike.position.z - Math.sin(currentPlayer["rotation"]) * Math.cos(a))
-
-        trail_vertices = appendPoint(trail_vertices, top_bike);
-        trail_vertices = appendPoint(trail_vertices, window.bike.position);
-        trail_vertices = appendPoint(trail_vertices, lastTrail[1]);
-
-        lastTrail[1] = top_bike;
-        lastTrail[0] = new THREE.Vector3(window.bike.position.x, window.bike.position.y, window.bike.position.z);
-
-        trail_geometry.setAttribute( "position", new THREE.BufferAttribute( trail_vertices, 3 ) );
-
-
 
         // Display all players
         for (var key in allPlayers) {
+            // Trail
+            if (trail_geometry[key] === undefined) {
+                trail_geometry[key] = new THREE.BufferGeometry();
+                trail_vertices[key] = new Float32Array(MAX_POINTS * 3)
+                lastTrail[key] = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0)];
+
+                // Trail init
+                trail_geometry[key].setAttribute( "position", new THREE.BufferAttribute( trail_vertices[key], 3 ) );
+                var trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2 } );
+                var mesh = new THREE.Mesh( trail_geometry[key], trail_material );
+                scene.add(mesh);
+                mesh.traverse( function( node ) {
+                    if( node.material ) {
+                        node.material.side = THREE.DoubleSide;
+                    }
+                });
+                mesh.frustumCulled = false;
+            } else {
+                var dx = Math.abs(lastTrail[key][0].x - allPlayers[key]["x"]);
+                var dz = Math.abs(lastTrail[key][0].z - allPlayers[key]["z"]);
+
+                if (Math.pow(dx, 2) + Math.pow(dz, 2) > 0.5) {
+                    trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
+
+                    // Update trail
+                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][0]);
+                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
+                    trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]));
+
+                    var a = (Math.PI / 2) - (allPlayers[key]["heading"]);
+                    var top_bike = new THREE.Vector3(allPlayers[key]["x"] + Math.sin(allPlayers[key]["rotation"] * Math.sin(a)),
+                        allPlayers[key]["y"] + Math.cos(allPlayers[key]["rotation"]), // Height
+                        allPlayers[key]["z"] - Math.sin(allPlayers[key]["rotation"]) * Math.cos(a))
+
+                    trail_vertices[key] = appendPoint(trail_vertices[key], top_bike);
+                    trail_vertices[key] = appendPoint(trail_vertices[key], allPlayers[key]);
+                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
+
+                    lastTrail[key][1] = top_bike;
+                    lastTrail[key][0] = new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]);
+                }
+            }
+
             if (key !== fizzyText.username) {
                 if (vehicles[key] === undefined) {
                     var copy = window.template.clone();
@@ -339,7 +326,7 @@ window.onload = function() {
     var camera = tmp[2];
     var controls = tmp[3];
 
-    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = [new THREE.Vector3(0,0,0), new THREE.Vector3(0,1,0)];
+    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {};
     window.gameBegin = false;
     window.names = {};
     const MAX_POINTS = 100000;
@@ -350,8 +337,10 @@ window.onload = function() {
         window.font = font;
     });
 
-    var trail_geometry = new THREE.BufferGeometry();
-    var trail_vertices = new Float32Array(MAX_POINTS * 3);
+    var trail_geometry = {};
+    var trail_vertices = {};
+    // var trail_geometry = new THREE.BufferGeometry();
+    // var trail_vertices = new Float32Array(MAX_POINTS * 3);
 
 
     function appendPoint(trail_vertices, vector) {
@@ -361,18 +350,6 @@ window.onload = function() {
 
         return trail_vertices
     }
-
-    // Trail init
-    trail_geometry.setAttribute( "position", new THREE.BufferAttribute( trail_vertices, 3 ) );
-    var trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2 } );
-    var mesh = new THREE.Mesh( trail_geometry, trail_material );
-    scene.add(mesh);
-    mesh.traverse( function( node ) {
-        if( node.material ) {
-            node.material.side = THREE.DoubleSide;
-        }
-    });
-    mesh.frustumCulled = false;
 
 
 
@@ -386,9 +363,11 @@ window.onload = function() {
         stats.end();
     };
 
+    // Window close event
     window.onunload = function() {
-        console.log('hello there');
-        socket.emit("remove_user", fizzyText.username);
-        sleep(1000);
+        if (window.gameBegin) {
+            socket.emit("remove_user", fizzyText.username);
+            GRID.sleep(1000);
+        }
     }
 };
