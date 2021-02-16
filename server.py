@@ -1,16 +1,32 @@
-import os
-from dataclasses import dataclass
 import json
 import math
-from time import time
+import time
+import eventlet
+from threading import Thread
+from dataclasses import dataclass
+import unicodedata as ud
 
 from flask_socketio import SocketIO
-from flask import Flask, send_from_directory, render_template, request
+from flask import Flask, send_from_directory, render_template
+
+from ip import ip_address
 
 async_mode = None
 app = Flask(__name__, static_url_path='')
-app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, async_mode=async_mode)
+
+
+# TODO: rewrite this :D
+latin_letters = {}
+def is_latin(uchr):
+    try: return latin_letters[uchr]
+    except KeyError:
+         return latin_letters.setdefault(uchr, 'LATIN' in ud.name(uchr))
+
+def only_roman_chars(unistr):
+    return all(is_latin(uchr)
+           for uchr in unistr
+           if uchr.isalpha())
 
 
 @dataclass
@@ -27,10 +43,11 @@ class Player:
     max_turn_angle: float = 0
 
 
+
 class Game():
     def __init__(self) -> None:
         self.AllPlayers = dict()
-        self.LastTime = int(time() * 1000) # Current time in milliseconds
+        self.LastTime = int(time.time() * 1000) # Current time in milliseconds
         self.TurnSpeed = 0.05
         self.Speed = 0.03
 
@@ -38,7 +55,7 @@ class Game():
         pass
 
     def update(self):
-        currentTime = int(time() * 1000) # Current time in milliseconds
+        currentTime = int(time.time() * 1000) # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():
             if self.AllPlayers[bike_key].boost_time <= 0:
                 self.AllPlayers[bike_key].speed = TheGrid.Speed
@@ -62,20 +79,25 @@ class Game():
 
 
 
-# Server part
+# Main page
 @app.route('/')
 def root():
     return render_template('main.html')
 
 
+# Get files from server (etc. libs)
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
 
 
+# Used for checking a name entered by the user
 @app.route('/check/<username>')
 def check(username):
-    return ['{"status": "false"}', '{"status": "true"}'][username in TheGrid.AllPlayers.keys()]
+    if not only_roman_chars(username):
+        return '{"status": "", "error": "true"}'
+
+    return ['{"status": "false", "error": "false"}', '{"status": "true", "error": "false"}'][username in TheGrid.AllPlayers.keys()]
 
 
 @socketio.on('keyup')
@@ -106,24 +128,42 @@ def handle_message(data):
     print('received message: ' + data)
 
 
-@socketio.on('get_data')
-def get(username):
-    TheGrid.update()
-
+# When user chooses a name he submits his final name and we add him to the table
+@socketio.on('add_user')
+def add(username):
+    print('New user')
     if username not in TheGrid.AllPlayers.keys():
         TheGrid.AllPlayers[username] = Player(username, TheGrid.Speed)
 
-    # Convert to JSON
-    converted = dict()
-    for player in TheGrid.AllPlayers.items():
-        converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
-         'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
-         'rotation': player[1].rotation}
+@socketio.on('remove_user')
+def removeUser(username):
+    print('remove_user')
+    del TheGrid.AllPlayers[username]
 
-    socketio.emit('update', json.dumps(converted))
 
+# We start a parrallel thread for game logics
+def GameLoop(name):
+    while True:
+        TheGrid.update()
+
+        # Convert to JSON
+        converted = dict()
+        for player in TheGrid.AllPlayers.items():
+            converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
+             'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
+             'rotation': player[1].rotation}
+
+        if len(TheGrid.AllPlayers) != 0:
+            socketio.emit('update', json.dumps(converted))
+
+        time.sleep(0.01)
 
 
 if __name__ == "__main__":
     TheGrid = Game()
-    socketio.run(app, port=5002)
+    eventlet.monkey_patch()
+
+    x = Thread(target=GameLoop, args=(1,))
+    x.start()
+
+    socketio.run(app, host=ip_address, port=5002)
