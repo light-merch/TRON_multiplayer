@@ -4,13 +4,29 @@ import time
 import eventlet
 from threading import Thread
 from dataclasses import dataclass
+import unicodedata as ud
 
 from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, render_template
 
+from ip import ip_address
+
 async_mode = None
 app = Flask(__name__, static_url_path='')
 socketio = SocketIO(app, async_mode=async_mode)
+
+
+# TODO: rewrite this :D
+latin_letters = {}
+def is_latin(uchr):
+    try: return latin_letters[uchr]
+    except KeyError:
+         return latin_letters.setdefault(uchr, 'LATIN' in ud.name(uchr))
+
+def only_roman_chars(unistr):
+    return all(is_latin(uchr)
+           for uchr in unistr
+           if uchr.isalpha())
 
 
 @dataclass
@@ -89,7 +105,10 @@ def send_js(path):
 # Used for checking a name entered by the user
 @app.route('/check/<username>')
 def check(username):
-    return ['{"status": "false"}', '{"status": "true"}'][username in TheGrid.AllPlayers.keys()]
+    if not only_roman_chars(username):
+        return '{"status": "", "error": "true"}'
+
+    return ['{"status": "false", "error": "false"}', '{"status": "true", "error": "false"}'][username in TheGrid.AllPlayers.keys()]
 
 
 @socketio.on('keyup')
@@ -128,6 +147,11 @@ def add(username):
         TheGrid.AllPlayers[username] = Player(username, TheGrid.Speed, [], [], [])
 
 
+@socketio.on('remove_user')
+def removeUser(username):
+    print('remove_user')
+    del TheGrid.AllPlayers[username]
+
 
 # We start a parrallel thread for game logics
 def GameLoop(name):
@@ -155,4 +179,4 @@ if __name__ == "__main__":
     x = Thread(target=GameLoop, args=(1,))
     x.start()
 
-    socketio.run(app, port=5002)
+    socketio.run(app, host=ip_address, port=5002)
