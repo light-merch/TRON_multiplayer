@@ -183,7 +183,7 @@ window.onload = function() {
 
         allPlayers = JSON.parse(msg);
         currentPlayer = allPlayers[fizzyText.username];
-        if (currentPlayer === undefined) {
+        if (currentPlayer === undefined || currentPlayer["status"]) {
             return;
         }
         camera.position.x += currentPlayer["x"] - lastX;
@@ -219,11 +219,13 @@ window.onload = function() {
             if (trail_geometry[key] === undefined) {
                 trail_geometry[key] = new THREE.BufferGeometry();
                 trail_vertices[key] = new Float32Array(MAX_POINTS * 3)
-                lastTrail[key] = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0)];
+                lastTrail[key] = [new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]),
+                    new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"] + 1, allPlayers[key]["z"])];
+
 
                 // Trail init
                 trail_geometry[key].setAttribute( "position", new THREE.BufferAttribute( trail_vertices[key], 3 ) );
-                var trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2 } );
+                var trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2, wireframe: true } );
                 var mesh = new THREE.Mesh( trail_geometry[key], trail_material );
                 scene.add(mesh);
                 mesh.traverse( function( node ) {
@@ -236,7 +238,7 @@ window.onload = function() {
                 var dx = Math.abs(lastTrail[key][0].x - allPlayers[key]["x"]);
                 var dz = Math.abs(lastTrail[key][0].z - allPlayers[key]["z"]);
 
-                if (Math.pow(dx, 2) + Math.pow(dz, 2) > 0.5) {
+                if (Math.pow(dx, 2) + Math.pow(dz, 2) > 10) {
                     trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
 
                     // Update trail
