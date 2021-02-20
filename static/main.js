@@ -238,23 +238,31 @@ window.onload = function() {
                 var dx = Math.abs(lastTrail[key][0].x - allPlayers[key]["x"]);
                 var dz = Math.abs(lastTrail[key][0].z - allPlayers[key]["z"]);
 
-                if (Math.pow(dx, 2) + Math.pow(dz, 2) > 10) {
-                    trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
 
-                    // Update trail
-                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][0]);
-                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
-                    trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]));
+                if (Math.pow(dx, 2) + Math.pow(dz, 2) <= 50 && lastBufferIndex > 0) {
+                    // Update just last poly of the trail
+                    lastBufferIndex = Math.max(lastBufferIndex - 18, 0);
+                }
+                console.log(lastBufferIndex);
 
-                    var a = (Math.PI / 2) - (allPlayers[key]["heading"]);
-                    var top_bike = new THREE.Vector3(allPlayers[key]["x"] + Math.sin(allPlayers[key]["rotation"] * Math.sin(a)),
-                        allPlayers[key]["y"] + Math.cos(allPlayers[key]["rotation"]), // Height
-                        allPlayers[key]["z"] - Math.sin(allPlayers[key]["rotation"]) * Math.cos(a))
+                trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
 
-                    trail_vertices[key] = appendPoint(trail_vertices[key], top_bike);
-                    trail_vertices[key] = appendPoint(trail_vertices[key], allPlayers[key]);
-                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
+                // Update trail by creating new poly
+                trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][0]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]));
 
+                var a = (Math.PI / 2) - (allPlayers[key]["heading"]);
+                var top_bike = new THREE.Vector3(allPlayers[key]["x"] + Math.sin(allPlayers[key]["rotation"] * Math.sin(a)),
+                    allPlayers[key]["y"] + Math.cos(allPlayers[key]["rotation"]), // Height
+                    allPlayers[key]["z"] - Math.sin(allPlayers[key]["rotation"]) * Math.cos(a))
+
+                trail_vertices[key] = appendPoint(trail_vertices[key], top_bike);
+                trail_vertices[key] = appendPoint(trail_vertices[key], allPlayers[key]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
+
+                if (Math.pow(dx, 2) + Math.pow(dz, 2) > 50) {
+                    lastHeading = allPlayers[key]["heading"]
                     lastTrail[key][1] = top_bike;
                     lastTrail[key][0] = new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]);
                 }
@@ -328,7 +336,7 @@ window.onload = function() {
     var camera = tmp[2];
     var controls = tmp[3];
 
-    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {};
+    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, lastHeading = undefined;
     window.gameBegin = false;
     window.names = {};
     const MAX_POINTS = 100000;
