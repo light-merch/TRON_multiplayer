@@ -7,7 +7,7 @@ using graphical library Three.js. Server is done in Python, Flask using sockets
 
 ## Requirements
 ```bash
-pip install flask flask-socketio
+pip install flask flask-socketio eventlet
 ```
 Note that flask-socketio version should be at least 5.x 
 
