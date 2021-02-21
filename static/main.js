@@ -217,10 +217,12 @@ window.onload = function() {
         for (var key in allPlayers) {
             // Trail
             if (trail_geometry[key] === undefined) {
+                // Init trail
                 trail_geometry[key] = new THREE.BufferGeometry();
                 trail_vertices[key] = new Float32Array(MAX_POINTS * 3)
                 lastTrail[key] = [new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]),
                     new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"] + 1, allPlayers[key]["z"])];
+                mainLastTrail[key] = Object.assign({}, lastTrail[key]);
 
 
                 // Trail init
@@ -235,21 +237,24 @@ window.onload = function() {
                 });
                 mesh.frustumCulled = false;
             } else {
-                var dx = Math.abs(lastTrail[key][0].x - allPlayers[key]["x"]);
-                var dz = Math.abs(lastTrail[key][0].z - allPlayers[key]["z"]);
+                var dx = Math.abs(mainLastTrail[key][0].x - allPlayers[key]["x"]);
+                var dz = Math.abs(mainLastTrail[key][0].z - allPlayers[key]["z"]);
 
 
                 if (Math.pow(dx, 2) + Math.pow(dz, 2) <= 50 && lastBufferIndex > 0) {
                     // Update just last poly of the trail
                     lastBufferIndex = Math.max(lastBufferIndex - 18, 0);
+                } else {
+                    if (lastBufferIndex !== 0) {
+                        mainLastTrail[key] = Object.assign({}, lastTrail[key]);
+                    }
                 }
-                console.log(lastBufferIndex);
 
                 trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
 
                 // Update trail by creating new poly
-                trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][0]);
-                trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][0]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][1]);
                 trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]));
 
                 var a = (Math.PI / 2) - (allPlayers[key]["heading"]);
@@ -259,13 +264,10 @@ window.onload = function() {
 
                 trail_vertices[key] = appendPoint(trail_vertices[key], top_bike);
                 trail_vertices[key] = appendPoint(trail_vertices[key], allPlayers[key]);
-                trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][1]);
 
-                if (Math.pow(dx, 2) + Math.pow(dz, 2) > 50) {
-                    lastHeading = allPlayers[key]["heading"]
-                    lastTrail[key][1] = top_bike;
-                    lastTrail[key][0] = new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]);
-                }
+                lastTrail[key][1] = top_bike;
+                lastTrail[key][0] = new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]);
             }
 
             if (key !== fizzyText.username) {
@@ -336,7 +338,7 @@ window.onload = function() {
     var camera = tmp[2];
     var controls = tmp[3];
 
-    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, lastHeading = undefined;
+    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
     window.gameBegin = false;
     window.names = {};
     const MAX_POINTS = 100000;

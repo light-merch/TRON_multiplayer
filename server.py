@@ -75,7 +75,7 @@ class Game():
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
         self.TurnSpeed = 0.05
         self.Speed = 0.03
-        self.StartPositions = [[0, 0, 0], [10, 0, 0], [10, 0, 10], [-10, 0, 0], [-10, 0, -10]]
+        self.StartPositions = [[0, 0, 0], [20, 0, 0], [40, 0, 0], [60, 0, 0], [80, 0, 0], [100, 0, 0]]
         self.UsersNum = 0
 
     # Collision check
