@@ -1,3 +1,11 @@
+import * as THREE from "./three.module.js";
+
+import { OrbitControls } from "./OrbitControls.js";
+import { OBJLoader } from "./OBJLoader.js";
+import { MTLLoader } from "./MTLLoader.js";
+import { DDSLoader } from "./DDSLoader.js";
+
+
 function httpGet(Url) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", Url, false); // false for synchronous request
@@ -43,4 +51,89 @@ function initStats(Stats) {
     return stats;
 }
 
-export { initStats, sleep, generateUsername };
+
+function init() {
+    let scene = new THREE.Scene();
+    let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    let renderer = new THREE.WebGLRenderer({antialias: true});
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    document.body.appendChild(renderer.domElement);
+    let controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableKeys = false;
+
+    window.addEventListener("resize", function () {
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        renderer.setSize(width, height);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+    });
+
+    const onProgress = function ( xhr ) {
+        if ( xhr.lengthComputable ) {
+            const percentComplete = xhr.loaded / xhr.total * 100;
+            // TODO: create a loading screen
+            // console.log( Math.round(percentComplete, 2) + "% downloaded" );
+        }
+    };
+    const onError = function () { };
+
+    const manager = new THREE.LoadingManager();
+    manager.addHandler(/\.dds$/i, new DDSLoader());
+
+    new MTLLoader(manager)
+        .setPath("models/")
+        .load( "bike.mtl", function (materials) {
+
+            materials.preload();
+
+            new OBJLoader(manager)
+                .setMaterials( materials )
+                .setPath("models/")
+                .load( "bike.obj", function (object) {
+                    let pivotPoint = new THREE.Object3D();
+                    pivotPoint.add(object);
+                    object.position.set(0, -0.3, 2);
+                    window.template = pivotPoint;
+                    window.bike = window.template.clone();
+                    scene.add(window.bike);
+
+                }, onProgress, onError );
+
+        });
+
+    new MTLLoader(manager)
+        .setPath("models/")
+        .load( "arena.mtl", function (materials) {
+
+            materials.preload();
+
+            new OBJLoader(manager)
+                .setMaterials( materials )
+                .setPath("models/")
+                .load( "arena.obj", function (object) {
+                    window.arena = object;
+                    scene.add(window.arena);
+                    window.arena.scale.set(40, 1, 40);
+                    window.arena.rotation.y = 180;
+
+                }, onProgress, onError );
+
+        } );
+
+    // light
+    let ambientLight = new THREE.AmbientLight(0xFFFFFF, 8);
+    scene.add(ambientLight);
+
+    camera.position.set(0, 8, -15);
+
+    camera.rotation.y = 3.14;
+    camera.rotation.x = 0.6;
+
+    return [scene, renderer, camera, controls]
+}
+
+
+export { initStats, sleep, generateUsername, init };

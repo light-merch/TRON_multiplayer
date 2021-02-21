@@ -1,11 +1,11 @@
+from dataclasses import dataclass
+from threading import Thread
+import unicodedata as ud
 import json
 import math
 import time
-import eventlet
-from threading import Thread
-from dataclasses import dataclass
-import unicodedata as ud
 
+import eventlet
 from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, render_template
 
@@ -53,7 +53,8 @@ class Player:
     max_turn_angle: float = 0
 
 
-class Point():
+# Vector structure for collisions
+class Point:
     def __init__(self, a, b):
         if type(a) == Point and type(b) == Point:
             self.x = b.x - a.x
@@ -69,7 +70,7 @@ class Point():
         return self.x * other.y - other.x * self.y
 
 
-class Game():
+class Game:
     def __init__(self) -> None:
         self.AllPlayers = dict()
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
@@ -79,7 +80,7 @@ class Game():
         self.UsersNum = 0
 
     # Collision check
-    def collisionCheck(self):
+    def collision_check(self):
         # TODO: Asymptotic of this algorithm seems very bad :(
 
         try:
@@ -104,11 +105,11 @@ class Game():
                             parallel2 = max(a.y, b.y) >= min(c.y, d.y) and min(a.y, b.y) <= max(c.y, d.y)
 
                             if parallel1 and parallel2:
-                                print("dead")
+                                print("Dead")
                                 player.dead = True
                                 del TheGrid.AllPlayers[player_key]
         except:
-            print('Threads interception')
+            pass
 
         for bike_key in self.AllPlayers.keys():
             self.AllPlayers[bike_key].x_trail.append(self.AllPlayers[bike_key].x)
@@ -118,12 +119,12 @@ class Game():
 
     # Compute movements of all bikes in since last calculation
     def update(self):
-        currentTime = int(time.time() * 1000)  # Current time in milliseconds
+        current_time = int(time.time() * 1000)  # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():
             if self.AllPlayers[bike_key].boost_time <= 0:
                 self.AllPlayers[bike_key].speed = TheGrid.Speed
             else:
-                self.AllPlayers[bike_key].boost_time -= (currentTime - self.LastTime)
+                self.AllPlayers[bike_key].boost_time -= (current_time - self.LastTime)
 
             if self.AllPlayers[bike_key].max_turn_angle > 0:
                 self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.02,
@@ -132,14 +133,14 @@ class Game():
                 self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.02,
                                                          self.AllPlayers[bike_key].max_turn_angle)
 
-            self.AllPlayers[bike_key].heading += (currentTime - self.LastTime) * self.AllPlayers[
+            self.AllPlayers[bike_key].heading += (current_time - self.LastTime) * self.AllPlayers[
                 bike_key].rotation * 0.001
-            speed = (currentTime - self.LastTime) * self.AllPlayers[bike_key].speed
+            speed = (current_time - self.LastTime) * self.AllPlayers[bike_key].speed
 
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
 
-        self.LastTime = currentTime
+        self.LastTime = current_time
 
 
 # Main page
@@ -167,25 +168,31 @@ def check(username):
 @socketio.on('keyup')
 def up(data):
     username = data['user']
-    if data['key'] == 65:  # A
-        TheGrid.AllPlayers[username].max_turn_angle = -0.0001
-    elif data['key'] == 68:  # D
-        TheGrid.AllPlayers[username].max_turn_angle = 0.0001
+    try:
+        if data['key'] == 65:  # A
+            TheGrid.AllPlayers[username].max_turn_angle = -0.0001
+        elif data['key'] == 68:  # D
+            TheGrid.AllPlayers[username].max_turn_angle = 0.0001
+    except:
+        pass
 
 
 @socketio.on('keydown')
 def down(data):
     username = data['user']
-    if data['key'] == 65:  # A
-        TheGrid.AllPlayers[username].max_turn_angle = 0.7
-    elif data['key'] == 68:  # D
-        TheGrid.AllPlayers[username].max_turn_angle = -0.7
-    elif data['key'] == 16:  # Shift
-        TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
-        TheGrid.AllPlayers[username].boost_time = 2000
-    elif data['key'] == 67:  # C
-        TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[
-            username].toggle_controls_rotation
+    try:
+        if data['key'] == 65:  # A
+            TheGrid.AllPlayers[username].max_turn_angle = 0.7
+        elif data['key'] == 68:  # D
+            TheGrid.AllPlayers[username].max_turn_angle = -0.7
+        elif data['key'] == 16:  # Shift
+            TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
+            TheGrid.AllPlayers[username].boost_time = 2000
+        elif data['key'] == 67:  # C
+            TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[
+                username].toggle_controls_rotation
+    except:
+        pass
 
 
 @socketio.on('message')
@@ -205,16 +212,16 @@ def add(username):
 
 
 @socketio.on('remove_user')
-def removeUser(username):
+def remove_user(username):
     print('remove_user')
     try:
         del TheGrid.AllPlayers[username]
-    finally:
+    except:
         pass
 
 
 # We start a parallel thread for game logics
-def GameLoop(name):
+def game_loop(name):
     while True:
         TheGrid.update()
 
@@ -231,10 +238,10 @@ def GameLoop(name):
         time.sleep(0.01)
 
 
-# Second parrallel thread for collision checks (They are much less frequent)
-def Collisions(name):
+# Second parallel thread for collision checks (They are much less frequent)
+def collisions(name):
     while True:
-        TheGrid.collisionCheck()
+        TheGrid.collision_check()
 
         time.sleep(0.1)
 
@@ -243,10 +250,10 @@ if __name__ == "__main__":
     TheGrid = Game()
     eventlet.monkey_patch()
 
-    x = Thread(target=GameLoop, args=(1,))
+    x = Thread(target=game_loop, args=(1,))
     x.start()
 
-    y = Thread(target=Collisions, args=(1,))
+    y = Thread(target=collisions, args=(1,))
     y.start()
 
     socketio.run(app, host=ip_address, port=5002)
