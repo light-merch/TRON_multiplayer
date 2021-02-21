@@ -1,121 +1,16 @@
 import * as THREE from "./three.module.js";
 
-import { OrbitControls } from "./OrbitControls.js";
-import { OBJLoader } from "./OBJLoader.js";
-import { MTLLoader } from "./MTLLoader.js";
-import { DDSLoader } from "./DDSLoader.js";
-
 import * as GRID from "./methods.js"
 
 
-var socket = io("http://" + window.location.hostname + ":" + window.location.port);
+let socket = io("http://" + window.location.hostname + ":" + window.location.port);
 
 
 function httpGet(Url) {
-    var xmlHttp = new XMLHttpRequest();
+    let xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", Url, false); // false for synchronous request
     xmlHttp.send(null);
     return JSON.parse(xmlHttp.responseText);
-}
-
-
-function fileGet(fileName) {
-    var rawFile = new XMLHttpRequest();
-    var allText = "";
-    rawFile.open("GET", fileName, false);
-    rawFile.onreadystatechange = function () {
-        if(rawFile.readyState === 4) {
-            if(rawFile.status === 200 || rawFile.status === 0) {
-                allText = rawFile.responseText;
-            }
-        }
-    };
-    rawFile.send(null);
-    return JSON.parse(allText);
-}
-
-
-function init() {
-    var scene = new THREE.Scene();
-    var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-    var renderer = new THREE.WebGLRenderer({antialias: true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    document.body.appendChild(renderer.domElement);
-    var controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableKeys = false;
-
-    window.addEventListener("resize", function () {
-        var width = window.innerWidth;
-        var height = window.innerHeight;
-        renderer.setSize(width, height);
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-    });
-
-    const onProgress = function ( xhr ) {
-        if ( xhr.lengthComputable ) {
-            const percentComplete = xhr.loaded / xhr.total * 100;
-            // TODO: create a loading screen
-            // console.log( Math.round(percentComplete, 2) + "% downloaded" );
-        }
-    };
-    const onError = function () { };
-
-    const manager = new THREE.LoadingManager();
-    manager.addHandler(/\.dds$/i, new DDSLoader());
-
-    new MTLLoader(manager)
-        .setPath("models/")
-        .load( "bike.mtl", function (materials) {
-
-            materials.preload();
-
-            new OBJLoader(manager)
-                .setMaterials( materials )
-                .setPath("models/")
-                .load( "bike.obj", function (object) {
-                    var pivotPoint = new THREE.Object3D();
-                    pivotPoint.add(object);
-                    object.position.set(0, -0.3, 2);
-                    window.template = pivotPoint;
-                    window.bike = window.template.clone();
-                    scene.add(window.bike);
-
-                }, onProgress, onError );
-
-        });
-
-    new MTLLoader(manager)
-        .setPath("models/")
-        .load( "arena.mtl", function (materials) {
-
-            materials.preload();
-
-            new OBJLoader(manager)
-                .setMaterials( materials )
-                .setPath("models/")
-                .load( "arena.obj", function (object) {
-                    window.arena = object;
-                    scene.add(window.arena);
-                    window.arena.scale.set(40, 1, 40);
-                    window.arena.rotation.y = 180;
-
-                }, onProgress, onError );
-
-        } );
-
-    // light
-    var ambientLight = new THREE.AmbientLight(0xFFFFFF, 8);
-    scene.add(ambientLight);
-
-    camera.position.set(0, 8, -15);
-
-    camera.rotation.y = 3.14;
-    camera.rotation.x = 0.6;
-
-    return [scene, renderer, camera, controls]
 }
 
 
@@ -140,11 +35,11 @@ window.onload = function() {
             sound.play(); */
 
             this.username = this.username.toLowerCase();
-            var res = httpGet("/check/" + this.username);
+            let res = httpGet("/check/" + this.username);
             if (res["status"] === "true" || this.username.length >= 30 || res["error"] === "true") {
                 if (this.error === "") {
                     this.error = "This username is already taken or contains Non-English letters"
-                    var e = gui.add(fizzyText, "error").name("Error");
+                    let e = gui.add(fizzyText, "error").name("Error");
                     e.domElement.style.pointerEvents = "none";
                 }
             } else {
@@ -158,11 +53,11 @@ window.onload = function() {
     };
 
 
-    var stats = GRID.initStats(Stats);
+    let stats = GRID.initStats(Stats);
 
     // Dat Gui controls setup
-    var fizzyText = new FizzyText();
-    var gui = new dat.GUI({
+    let fizzyText = new FizzyText();
+    let gui = new dat.GUI({
         load: JSON,
         preset: "Flow",
         width: 700
@@ -183,22 +78,22 @@ window.onload = function() {
 
         allPlayers = JSON.parse(msg);
         currentPlayer = allPlayers[fizzyText.username];
-        if (currentPlayer === undefined) {
+        if (currentPlayer === undefined || currentPlayer["status"]) {
             return;
         }
         camera.position.x += currentPlayer["x"] - lastX;
         camera.position.y += currentPlayer["y"] - lastY;
         camera.position.z += currentPlayer["z"] - lastZ;
 
-        var angle = lastHeading - currentPlayer["heading"];
+        let angle = lastHeading - currentPlayer["heading"];
         if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
             if (angle > 0) {
                 angle = Math.min(angle, 0.04);
             } else {
                 angle = Math.max(angle, -0.04);
             }
-            var x = [camera.position.x, window.bike.position.x];
-            var y = [camera.position.z, window.bike.position.z];
+            let x = [camera.position.x, window.bike.position.x];
+            let y = [camera.position.z, window.bike.position.z];
             camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
             camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
 
@@ -214,17 +109,21 @@ window.onload = function() {
 
 
         // Display all players
-        for (var key in allPlayers) {
+        for (let key in allPlayers) {
             // Trail
             if (trail_geometry[key] === undefined) {
+                // Init trail
                 trail_geometry[key] = new THREE.BufferGeometry();
                 trail_vertices[key] = new Float32Array(MAX_POINTS * 3)
-                lastTrail[key] = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0)];
+                lastTrail[key] = [new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]),
+                    new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"] + 1, allPlayers[key]["z"])];
+                mainLastTrail[key] = Object.assign({}, lastTrail[key]);
+
 
                 // Trail init
                 trail_geometry[key].setAttribute( "position", new THREE.BufferAttribute( trail_vertices[key], 3 ) );
-                var trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2 } );
-                var mesh = new THREE.Mesh( trail_geometry[key], trail_material );
+                let trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2, wireframe: false } );
+                let mesh = new THREE.Mesh( trail_geometry[key], trail_material );
                 scene.add(mesh);
                 mesh.traverse( function( node ) {
                     if( node.material ) {
@@ -233,34 +132,42 @@ window.onload = function() {
                 });
                 mesh.frustumCulled = false;
             } else {
-                var dx = Math.abs(lastTrail[key][0].x - allPlayers[key]["x"]);
-                var dz = Math.abs(lastTrail[key][0].z - allPlayers[key]["z"]);
+                let dx = Math.abs(mainLastTrail[key][0].x - allPlayers[key]["x"]);
+                let dz = Math.abs(mainLastTrail[key][0].z - allPlayers[key]["z"]);
 
-                if (Math.pow(dx, 2) + Math.pow(dz, 2) > 0.5) {
-                    trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
 
-                    // Update trail
-                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][0]);
-                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
-                    trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]));
-
-                    var a = (Math.PI / 2) - (allPlayers[key]["heading"]);
-                    var top_bike = new THREE.Vector3(allPlayers[key]["x"] + Math.sin(allPlayers[key]["rotation"] * Math.sin(a)),
-                        allPlayers[key]["y"] + Math.cos(allPlayers[key]["rotation"]), // Height
-                        allPlayers[key]["z"] - Math.sin(allPlayers[key]["rotation"]) * Math.cos(a))
-
-                    trail_vertices[key] = appendPoint(trail_vertices[key], top_bike);
-                    trail_vertices[key] = appendPoint(trail_vertices[key], allPlayers[key]);
-                    trail_vertices[key] = appendPoint(trail_vertices[key], lastTrail[key][1]);
-
-                    lastTrail[key][1] = top_bike;
-                    lastTrail[key][0] = new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]);
+                if (Math.pow(dx, 2) + Math.pow(dz, 2) <= 10 && lastBufferIndex > 0) {
+                    // Update just last poly of the trail
+                    lastBufferIndex = Math.max(lastBufferIndex - 18, 0);
+                } else {
+                    if (lastBufferIndex !== 0) {
+                        mainLastTrail[key] = Object.assign({}, lastTrail[key]);
+                    }
                 }
+
+                trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
+
+                // Update trail by creating new poly
+                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][0]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][1]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]));
+
+                let a = (Math.PI / 2) - (allPlayers[key]["heading"]);
+                let top_bike = new THREE.Vector3(allPlayers[key]["x"] + Math.sin(allPlayers[key]["rotation"] * Math.sin(a)),
+                    allPlayers[key]["y"] + Math.cos(allPlayers[key]["rotation"]), // Height
+                    allPlayers[key]["z"] - Math.sin(allPlayers[key]["rotation"]) * Math.cos(a))
+
+                trail_vertices[key] = appendPoint(trail_vertices[key], top_bike);
+                trail_vertices[key] = appendPoint(trail_vertices[key], allPlayers[key]);
+                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][1]);
+
+                lastTrail[key][1] = top_bike;
+                lastTrail[key][0] = new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]);
             }
 
             if (key !== fizzyText.username) {
                 if (vehicles[key] === undefined) {
-                    var copy = window.template.clone();
+                    let copy = window.template.clone();
                     scene.add(copy);
                     vehicles[key] = copy;
                     window.key = key;
@@ -281,7 +188,7 @@ window.onload = function() {
                     geometry.computeBoundingBox();
                     geometry.center();
                     const material = new THREE.MeshPhongMaterial( {color: 0x444444} );
-                    var text = new THREE.Mesh(geometry, material);
+                    let text = new THREE.Mesh(geometry, material);
 
                     text.scale.set(0.015, 0.015, 0.015);
                     window.names[window.key] = text;
@@ -320,27 +227,27 @@ window.onload = function() {
 
 
 
-    var tmp = init();
-    var scene = tmp[0];
-    var renderer = tmp[1];
-    var camera = tmp[2];
-    var controls = tmp[3];
+    let tmp = GRID.init();
+    let scene = tmp[0];
+    let renderer = tmp[1];
+    let camera = tmp[2];
+    let controls = tmp[3];
 
-    var allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {};
+    let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
     window.gameBegin = false;
     window.names = {};
     const MAX_POINTS = 100000;
-    var lastBufferIndex = 0;
+    let lastBufferIndex = 0;
 
     const loader = new THREE.FontLoader();
     loader.load( "models/font.json", function (font) {
         window.font = font;
     });
 
-    var trail_geometry = {};
-    var trail_vertices = {};
-    // var trail_geometry = new THREE.BufferGeometry();
-    // var trail_vertices = new Float32Array(MAX_POINTS * 3);
+    let trail_geometry = {};
+    let trail_vertices = {};
+    // let trail_geometry = new THREE.BufferGeometry();
+    // let trail_vertices = new Float32Array(MAX_POINTS * 3);
 
 
     function appendPoint(trail_vertices, vector) {
@@ -354,7 +261,7 @@ window.onload = function() {
 
 
     // Main loop
-    var GameLoop = function() {
+    let GameLoop = function() {
         requestAnimationFrame(GameLoop);
         stats.begin();
         controls.update();
