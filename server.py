@@ -82,30 +82,33 @@ class Game():
     def collisionCheck(self):
         # TODO: Asymptotic of this algorithm seems very bad :(
 
-        for player_key in self.AllPlayers.keys():  # Bike which we check
-            for enemy_key in self.AllPlayers.keys():  # Bike for collisions
-                for poly in range(self.AllPlayers[enemy_key].trail_size - 1):
-                    player = self.AllPlayers[player_key]
-                    enemy = self.AllPlayers[enemy_key]
+        try:
+            for player_key in self.AllPlayers.keys():  # Bike which we check
+                for enemy_key in self.AllPlayers.keys():  # Bike for collisions
+                    for poly in range(self.AllPlayers[enemy_key].trail_size - 1):
+                        player = self.AllPlayers[player_key]
+                        enemy = self.AllPlayers[enemy_key]
 
-                    a = Point(player.x, player.z)  # Bike coords
-                    b = Point(player.x + 6 * math.sin(player.heading),
-                              player.z + 6 * math.cos(player.heading))  # Second point
+                        a = Point(player.x, player.z)  # Bike coords
+                        b = Point(player.x + 6 * math.sin(player.heading),
+                                  player.z + 6 * math.cos(player.heading))  # Second point
 
-                    c = Point(enemy.x_trail[poly], enemy.z_trail[poly])  # Trail part 1
-                    d = Point(enemy.x_trail[poly + 1], enemy.z_trail[poly + 1])  # Trail part 2
+                        c = Point(enemy.x_trail[poly], enemy.z_trail[poly])  # Trail part 1
+                        d = Point(enemy.x_trail[poly + 1], enemy.z_trail[poly + 1])  # Trail part 2
 
-                    line1 = (Point(c, b).cp(Point(c, d)) > 0) == (Point(c, d).cp(Point(c, a)) > 0)
-                    line2 = (Point(a, c).cp(Point(a, b)) > 0) == (Point(a, b).cp(Point(a, d)) > 0)
+                        line1 = (Point(c, b).cp(Point(c, d)) > 0) == (Point(c, d).cp(Point(c, a)) > 0)
+                        line2 = (Point(a, c).cp(Point(a, b)) > 0) == (Point(a, b).cp(Point(a, d)) > 0)
 
-                    if line1 and line2:
-                        parallel1 = max(a.x, b.x) >= min(c.x, d.x) and min(a.x, b.x) <= max(c.x, d.x)
-                        parallel2 = max(a.y, b.y) >= min(c.y, d.y) and min(a.y, b.y) <= max(c.y, d.y)
+                        if line1 and line2:
+                            parallel1 = max(a.x, b.x) >= min(c.x, d.x) and min(a.x, b.x) <= max(c.x, d.x)
+                            parallel2 = max(a.y, b.y) >= min(c.y, d.y) and min(a.y, b.y) <= max(c.y, d.y)
 
-                        if parallel1 and parallel2:
-                            print("dead")
-                            player.dead = True
-                            del TheGrid.AllPlayers[player_key]
+                            if parallel1 and parallel2:
+                                print("dead")
+                                player.dead = True
+                                del TheGrid.AllPlayers[player_key]
+        except:
+            print('Threads interception')
 
         for bike_key in self.AllPlayers.keys():
             self.AllPlayers[bike_key].x_trail.append(self.AllPlayers[bike_key].x)
@@ -210,7 +213,7 @@ def removeUser(username):
         pass
 
 
-# We start a parrallel thread for game logics
+# We start a parallel thread for game logics
 def GameLoop(name):
     while True:
         TheGrid.update()
