@@ -111,6 +111,7 @@ class Game:
     def collision_check(self):
         # TODO: Asymptotic of this algorithm seems very bad :(
 
+
         for player_key in self.AllPlayers.keys():  # Bike which we check
             for enemy_key in self.AllPlayers.keys():  # Bike for collisions
                 for poly in range(self.AllPlayers[enemy_key].trail_size - 1):
@@ -132,11 +133,13 @@ class Game:
                             parallel1 = max(a.x, b.x) >= min(c.x, d.x) and min(a.x, b.x) <= max(c.x, d.x)
                             parallel2 = max(a.y, b.y) >= min(c.y, d.y) and min(a.y, b.y) <= max(c.y, d.y)
 
-                            if parallel1 and parallel2:
-                                print("Dead")
+                            if parallel1 and parallel2 and not player.dead:
                                 player.dead = True
-                                if len(TheGrid.AllPlayers) <= 2:
+
+                                self.UsersNum -= 1
+                                if TheGrid.UsersNum <= 1:
                                     TheGrid.playerReset()
+
                     except:
                         pass
 
