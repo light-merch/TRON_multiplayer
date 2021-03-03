@@ -13,7 +13,7 @@ Note that flask-socketio version should be at least 5.x
 
 ## Special thanks to these people:
 >
-> [Proskuriakov Dima](https://vk.com/justdprroz) - Authentication server & ideas
+> [Proskuriakov Dima](https://github.com/justdprroz) - Authentication server & ideas
 > 
 > [Shishkin Nikita](https://vk.com/nik.vile) - Photoshopping textures
 > 
@@ -21,4 +21,4 @@ Note that flask-socketio version should be at least 5.x
 >
 
 ## Author
-[Artushkov Pavel]()
+[Artushkov Pavel](https://github.com/pavtiger)
