@@ -7,12 +7,18 @@ using graphical library Three.js. Server is done in Python, Flask using sockets
 
 ## Requirements
 ```bash
-pip install flask flask-socketio
+pip install flask flask-socketio eventlet
 ```
 Note that flask-socketio version should be at least 5.x 
 
-## Special thanks to these people
+## Special thanks to these people:
+>
+> [Proskuriakov Dima](https://github.com/justdprroz) - Authentication server & ideas
+> 
 > [Shishkin Nikita](https://vk.com/nik.vile) - Photoshopping textures
 > 
 > [u/kod8ultimate](https://www.reddit.com/user/kod8ultimate/) - 3D models
-> 
+>
+
+## Author
+[Artushkov Pavel](https://github.com/pavtiger)
