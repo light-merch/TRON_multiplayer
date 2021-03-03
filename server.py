@@ -163,7 +163,7 @@ class Game:
     def update(self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():
-            if self.AllPlayers[bike_key].dead:
+            if self.AllPlayers[bike_key].dead or abs(self.AllPlayers[bike_key].x) > 50 or abs(self.AllPlayers[bike_key].y) > 50:
                 continue
 
             if self.AllPlayers[bike_key].boost_time <= 0:
