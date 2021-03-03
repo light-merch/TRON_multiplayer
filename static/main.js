@@ -78,7 +78,7 @@ window.onload = function() {
 
         allPlayers = JSON.parse(msg);
         currentPlayer = allPlayers[fizzyText.username];
-        if (currentPlayer === undefined || currentPlayer["status"]) {
+        if (currentPlayer === undefined) {
             return;
         }
         camera.position.x += currentPlayer["x"] - lastX;
@@ -136,7 +136,7 @@ window.onload = function() {
                 let dz = Math.abs(mainLastTrail[key][0].z - allPlayers[key]["z"]);
 
 
-                if (Math.pow(dx, 2) + Math.pow(dz, 2) <= 10 && lastBufferIndex > 0) {
+                if (dx * dx + dz * dz <= 10 && lastBufferIndex > 0) {
                     // Update just last poly of the trail
                     lastBufferIndex = Math.max(lastBufferIndex - 18, 0);
                 } else {
@@ -236,7 +236,7 @@ window.onload = function() {
     let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
     window.gameBegin = false;
     window.names = {};
-    const MAX_POINTS = 100000;
+    const MAX_POINTS = 10000;
     let lastBufferIndex = 0;
 
     const loader = new THREE.FontLoader();
@@ -246,8 +246,6 @@ window.onload = function() {
 
     let trail_geometry = {};
     let trail_vertices = {};
-    // let trail_geometry = new THREE.BufferGeometry();
-    // let trail_vertices = new Float32Array(MAX_POINTS * 3);
 
 
     function appendPoint(trail_vertices, vector) {
