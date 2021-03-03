@@ -111,7 +111,6 @@ class Game:
     def collision_check(self):
         # TODO: Asymptotic of this algorithm seems very bad :(
 
-        # print(self.AllPlayers.keys())
         for player_key in self.AllPlayers.keys():  # Bike which we check
             for enemy_key in self.AllPlayers.keys():  # Bike for collisions
                 for poly in range(self.AllPlayers[enemy_key].trail_size - 1):
@@ -119,12 +118,10 @@ class Game:
                     enemy = self.AllPlayers[enemy_key]
 
                     try:
-                        # print(player_key, enemy_key)
                         a = Point(player.x, player.z)  # Bike coords
                         b = Point(player.x + 6 * math.sin(player.heading),
                                   player.z + 6 * math.cos(player.heading))  # Second point
 
-                        # print(enemy.x_trail, poly)
                         c = Point(enemy.x_trail[poly], enemy.z_trail[poly])  # Trail part 1
                         d = Point(enemy.x_trail[poly + 1], enemy.z_trail[poly + 1])  # Trail part 2
 
@@ -164,7 +161,6 @@ class Game:
         current_time = int(time.time() * 1000)  # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():
             if self.AllPlayers[bike_key].dead:
-                print('Nooooo')
                 continue
 
             if self.AllPlayers[bike_key].boost_time <= 0:
