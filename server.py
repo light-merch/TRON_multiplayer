@@ -9,7 +9,7 @@ import eventlet
 from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, render_template
 
-from ip import ip_address
+from ip import ip_address, port
 
 async_mode = None
 app = Flask(__name__, static_url_path='')
@@ -256,4 +256,4 @@ if __name__ == "__main__":
     y = Thread(target=collisions, args=(1,))
     y.start()
 
-    socketio.run(app, host=ip_address, port=5002)
+    socketio.run(app, host=ip_address, port=port)
