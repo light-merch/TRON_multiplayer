@@ -44,6 +44,7 @@ class Player:
     x_trail: list
     y_trail: list
     z_trail: list
+    booster: int = 4
 
     dead: bool = False
     trail_size: int = 0
@@ -161,6 +162,22 @@ class Game:
             except:
                 pass
 
+        for bike in self.AllPlayers.keys():
+            for i in range(len(self.boosters)):
+                dx = self.boosters[i].x - self.AllPlayers[bike_key].x
+                dz = self.boosters[i].z - self.AllPlayers[bike_key].z
+                r = 4
+                if math.sqrt(dx * dx + dz * dz) <= r:
+                    self.AllPlayers[bike_key].booster += 1
+                    self.boosters.pop(i)
+                    converted = []
+                    for i in self.boosters:
+                        converted.append({"x": i.x, "y": i.y, "z": i.z })
+                    socketio.emit('booster', json.dumps(converted))
+                    break
+
+
+
     # Compute movements of all bikes in since last calculation
     def update(self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
@@ -187,9 +204,9 @@ class Game:
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
 
-        if current_time - self.LastBoosters > (10 * 1000) and len(self.boosters) < 100 and self.UsersNum:
-            for i in range(min(3, 100 - len(self.boosters))):
-                r = 500
+        if current_time - self.LastBoosters > (10 * 1000) and len(self.boosters) < 10 and self.UsersNum:
+            for i in range(min(3, 10 - len(self.boosters))):
+                r = 1000
                 self.boosters.append(Point3d(randint(-r, r), 1, randint(-r, r)))
             converted = []
 
@@ -197,7 +214,6 @@ class Game:
                 converted.append({"x": i.x, "y": i.y, "z": i.z })
 
             socketio.emit('booster', json.dumps(converted))
-            print(converted)
             self.LastBoosters = current_time
         self.LastTime = current_time
 
@@ -246,7 +262,8 @@ def down(data):
             TheGrid.AllPlayers[username].max_turn_angle = -0.7
         elif data['key'] == 16:  # Shift
             TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
-            TheGrid.AllPlayers[username].boost_time = 2000
+            TheGrid.AllPlayers[username].boost_time = 1000 * TheGrid.AllPlayers[username].booster
+            TheGrid.AllPlayers[username].booster = 0
         elif data['key'] == 67:  # C
             TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[
                 username].toggle_controls_rotation
