@@ -71,6 +71,19 @@ window.onload = function() {
         socket.emit("message", "I am connected");
     });
 
+
+    socket.on("booster", function(msg) {
+        let b = JSON.parse(msg);
+        const geometry = new THREE.SphereGeometry( 2, 32, 32 );
+        const material = new THREE.MeshBasicMaterial( {color: 0xff00ff} );
+        for (let i = 0; i < b.length; i++){
+            boosters.push(new THREE.Mesh( geometry, material));
+            boosters[i].position.set(b[i].x, b[i].y, b[i].z);
+            scene.add(boosters[i]);
+        }
+    });
+
+
     socket.on("update", function(msg) {
         if (!window.gameBegin) {
             return;
@@ -106,7 +119,7 @@ window.onload = function() {
         window.bike.rotation.z = -currentPlayer["rotation"];
         controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
-
+        
 
         // Display all players
         for (let key in allPlayers) {
@@ -232,6 +245,8 @@ window.onload = function() {
     let renderer = tmp[1];
     let camera = tmp[2];
     let controls = tmp[3];
+
+    let boosters = []
 
     let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
     window.gameBegin = false;

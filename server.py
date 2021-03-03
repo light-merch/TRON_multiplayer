@@ -4,6 +4,7 @@ import unicodedata as ud
 import json
 import math
 import time
+from random import randint
 
 import eventlet
 from flask_socketio import SocketIO
@@ -81,8 +82,9 @@ class Game:
     def __init__(self) -> None:
         self.AllPlayers = dict()
         self.LastTrail = dict()
-
+        self.boosters = list()
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
+        self.LastBoosters = int(time.time() * 1000)
         self.TurnSpeed = 0.05
         self.Speed = 0.03
         self.StartPositions = [[0, 0, 0], [100, 0, 0], [200, 0, 0], [300, 0, 0], [400, 0, 0], [500, 0, 0]]
@@ -185,6 +187,18 @@ class Game:
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
 
+        if current_time - self.LastBoosters > (10 * 1000) and len(self.boosters) < 100 and self.UsersNum:
+            for i in range(min(3, 100 - len(self.boosters))):
+                r = 500
+                self.boosters.append(Point3d(randint(-r, r), 1, randint(-r, r)))
+            converted = []
+
+            for i in self.boosters:
+                converted.append({"x": i.x, "y": i.y, "z": i.z })
+
+            socketio.emit('booster', json.dumps(converted))
+            print(converted)
+            self.LastBoosters = current_time
         self.LastTime = current_time
 
 
@@ -283,6 +297,8 @@ def game_loop(name):
 
         if len(TheGrid.AllPlayers) != 0:
             socketio.emit('update', json.dumps(converted))
+
+        
 
         time.sleep(0.01)
 
