@@ -164,11 +164,11 @@ class Game:
 
         for bike in self.AllPlayers.keys():
             for i in range(len(self.boosters)):
-                dx = self.boosters[i].x - self.AllPlayers[bike_key].x
-                dz = self.boosters[i].z - self.AllPlayers[bike_key].z
+                dx = self.boosters[i].x - self.AllPlayers[bike].x
+                dz = self.boosters[i].z - self.AllPlayers[bike].z
                 r = 4
                 if math.sqrt(dx * dx + dz * dz) <= r:
-                    self.AllPlayers[bike_key].booster += 1
+                    self.AllPlayers[bike].booster += 1
                     self.boosters.pop(i)
                     converted = []
                     for i in self.boosters:
@@ -314,8 +314,6 @@ def game_loop(name):
 
         if len(TheGrid.AllPlayers) != 0:
             socketio.emit('update', json.dumps(converted))
-
-        
 
         time.sleep(0.01)
 
