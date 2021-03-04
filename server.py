@@ -289,6 +289,11 @@ def add(username):
         TheGrid.AllPlayers[username] = Player(start_position[0], start_position[1], start_position[2],
                                               username, TheGrid.Speed, [], [], [])
         TheGrid.UsersNum += 1
+        converted = []
+        for i in TheGrid.boosters:
+            converted.append({"x": i.x, "y": i.y, "z": i.z })
+        socketio.emit('booster', json.dumps(converted))
+    
 
 
 @socketio.on('remove_user')
