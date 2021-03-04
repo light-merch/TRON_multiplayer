@@ -238,7 +238,7 @@ window.onload = function() {
     let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
     window.gameBegin = false;
     window.names = {};
-    const MAX_POINTS = 10000;
+    const MAX_POINTS = 30000;
     let lastBufferIndex = 0;
 
     const loader = new THREE.FontLoader();

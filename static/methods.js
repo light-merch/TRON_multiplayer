@@ -54,7 +54,7 @@ function initStats(Stats) {
 
 function init() {
     let scene = new THREE.Scene();
-    let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
 
     let renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -106,18 +106,18 @@ function init() {
 
     new MTLLoader(manager)
         .setPath("models/")
-        .load( "arena.mtl", function (materials) {
+        .load( "arena7.mtl", function (materials) {
 
             materials.preload();
 
             new OBJLoader(manager)
                 .setMaterials( materials )
                 .setPath("models/")
-                .load( "arena.obj", function (object) {
+                .load( "arena7.obj", function (object) {
                     window.arena = object;
                     scene.add(window.arena);
-                    window.arena.scale.set(40, 1, 40);
-                    window.arena.rotation.y = 180;
+                    window.arena.scale.set(40, 40, 40);
+                    window.arena.position.set(20, 0, -20);
 
                 }, onProgress, onError );
 

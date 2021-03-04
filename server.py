@@ -135,7 +135,6 @@ class Game:
 
                             if parallel1 and parallel2 and not player.dead:
                                 player.dead = True
-
                                 self.UsersNum -= 1
                                 if TheGrid.UsersNum <= 1:
                                     TheGrid.playerReset()
@@ -163,7 +162,13 @@ class Game:
     def update(self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():
-            if self.AllPlayers[bike_key].dead or abs(self.AllPlayers[bike_key].x) > 50 or abs(self.AllPlayers[bike_key].y) > 50:
+            if abs(self.AllPlayers[bike_key].x) > 500 or abs(self.AllPlayers[bike_key].z) > 800:
+                self.AllPlayers[bike_key].dead = True
+                self.UsersNum -= 1
+                if self.UsersNum <= 1:
+                    self.playerReset()
+
+            if self.AllPlayers[bike_key].dead:
                 continue
 
             if self.AllPlayers[bike_key].boost_time <= 0:
