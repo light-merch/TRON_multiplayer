@@ -117,8 +117,8 @@ window.onload = function() {
                 // Init trail
                 trail_geometry[key] = new THREE.BufferGeometry();
                 trail_vertices[key] = new Float32Array(MAX_POINTS * 3)
-                lastTrail[key] = [new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]),
-                    new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"] + 1, allPlayers[key]["z"])];
+                lastTrail[key] = [new THREE.Vector3( allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"] ),
+                    new THREE.Vector3( allPlayers[key]["x"], allPlayers[key]["y"] + 1, allPlayers[key]["z"] )];
                 mainLastTrail[key] = Object.assign({}, lastTrail[key]);
 
 
@@ -147,15 +147,15 @@ window.onload = function() {
                     }
                 }
 
-                trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
+                trail_geometry[key].setAttribute("position", new THREE.BufferAttribute( trail_vertices[key], 3 ));
 
                 // Update trail by creating new poly
                 trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][0]);
                 trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][1]);
-                trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]));
+                trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3( allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"] ));
 
                 let a = (Math.PI / 2) - (allPlayers[key]["heading"]);
-                let top_bike = new THREE.Vector3(allPlayers[key]["x"] + Math.sin(allPlayers[key]["rotation"] * Math.sin(a)),
+                let top_bike = new THREE.Vector3( allPlayers[key]["x"] + Math.sin(allPlayers[key]["rotation"] * Math.sin(a) ),
                     allPlayers[key]["y"] + Math.cos(allPlayers[key]["rotation"]), // Height
                     allPlayers[key]["z"] - Math.sin(allPlayers[key]["rotation"]) * Math.cos(a))
 
@@ -164,7 +164,7 @@ window.onload = function() {
                 trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][1]);
 
                 lastTrail[key][1] = top_bike;
-                lastTrail[key][0] = new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]);
+                lastTrail[key][0] = new THREE.Vector3( allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"] );
             }
 
             if (key !== fizzyText.username) {
@@ -175,7 +175,7 @@ window.onload = function() {
                     window.key = key;
 
                     // Display usernames
-                    const geometry = new THREE.TextGeometry(window.key, {
+                    const geometry = new THREE.TextGeometry( window.key, {
                         font: window.font,
                         size: 80,
                         height: 3,
@@ -190,7 +190,7 @@ window.onload = function() {
                     geometry.computeBoundingBox();
                     geometry.center();
                     const material = new THREE.MeshPhongMaterial( {color: 0x444444} );
-                    let text = new THREE.Mesh(geometry, material);
+                    let text = new THREE.Mesh( geometry, material );
 
                     text.scale.set(0.015, 0.015, 0.015);
                     window.names[window.key] = text;
