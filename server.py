@@ -69,6 +69,7 @@ class Player:
     y_trail: list
     z_trail: list
 
+    booster: int = 0
     dead: bool = False
     trail_size: int = 0
     heading: float = 0
@@ -171,7 +172,7 @@ class Game:
             for i in range(len(self.boosters)):
                 dx = self.boosters[i].x - self.AllPlayers[bike].x
                 dz = self.boosters[i].z - self.AllPlayers[bike].z
-                if math.sqrt(dx * dx + dz * dz) <= 5:
+                if math.sqrt(dx * dx + dz * dz) <= 5 and self.AllPlayers[bike].booster <= 5:
                     self.AllPlayers[bike].booster += 1
                     self.boosters.pop(i)
                     converted = []
@@ -325,7 +326,7 @@ def game_loop(name):
         for player in TheGrid.AllPlayers.items():
             converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
                                     'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
-                                    'rotation': player[1].rotation, 'status': player[1].dead}
+                                    'rotation': player[1].rotation, 'status': player[1].dead, 'boosters': player[1].booster}
 
         if len(TheGrid.AllPlayers) != 0:
             socketio.emit('update', json.dumps(converted))

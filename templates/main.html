@@ -7,6 +7,23 @@
         <style>
             body { margin: 0; overflow: hidden; }
             canvas { width: 100%; height: 100%; }
+            .boosters {
+                position: absolute;
+                bottom: 0px;
+            }
+            .grey{
+                background-color: #bbb;
+            }
+            .purple{
+                background-color: blueviolet;
+            }
+            .boosters > div {
+                height: 45px;
+                width: 45px;
+                border-radius: 50%;
+                display: inline-block;
+                z-index: 1;
+            }
         </style>
     </head>
 
@@ -14,6 +31,14 @@
         <script src="stats.min.js"></script>
         <script src="dat.gui.min.js"></script>
         <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
+        
+        <div class="boosters">
+            <div id="1" class="grey"></div>
+            <div id="2" class="grey"></div>
+            <div id="3" class="grey"></div>
+            <div id="4" class="grey"></div>
+            <div id="5" class="grey"></div>
+        </div>
 
         <script type="module" src="main.js"></script>
     </body>

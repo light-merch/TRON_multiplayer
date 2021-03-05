@@ -121,7 +121,16 @@ window.onload = function() {
         window.bike.rotation.z = -currentPlayer["rotation"];
         controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
-        
+        let boostersgui = document.getElementsByClassName("boosters")[0].getElementsByTagName("div");
+        for(var i = 0; i < 5; i++){
+            let boost = boostersgui[i];
+            if (i < currentPlayer["boosters"]){
+                boost.setAttribute("class", "purple")
+            }
+            else {
+                boost.setAttribute("class", "grey")
+            }
+        }
 
         // Display all players
         for (let key in allPlayers) {
