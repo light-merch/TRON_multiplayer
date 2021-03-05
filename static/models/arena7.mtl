@@ -1,5 +1,15 @@
 # Blender MTL File: 'arena2.blend'
-# Material Count: 1
+# Material Count: 2
+
+newmtl Material.001
+Ns 578.119600
+Ka 0.492647 0.492647 0.492647
+Kd 0.004985 0.181088 0.882924
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 0.750000
+illum 6
 
 newmtl segment
 Ns 900.000000
