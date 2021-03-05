@@ -33,27 +33,6 @@ def only_roman_chars(unistr):
 
 
 @dataclass
-class Player:
-    x: float
-    y: float
-    z: float
-
-    player_name: str
-    speed: float
-    x_trail: list
-    y_trail: list
-    z_trail: list
-
-    dead: bool = False
-    trail_size: int = 0
-    heading: float = 0
-    rotation: float = 0
-    boost_time: int = 0
-    toggle_controls_rotation: bool = True
-    max_turn_angle: float = 0
-
-
-@dataclass
 class Point3d:
     x: float
     y: float
@@ -77,6 +56,28 @@ class Point:
         return self.x * other.y - other.x * self.y
 
 
+@dataclass
+class Player:
+    x: float
+    y: float
+    z: float
+
+    player_name: str
+    speed: float
+    x_trail: list
+    y_trail: list
+    z_trail: list
+
+    dead: bool = False
+    trail_size: int = 0
+    heading: float = 0
+    rotation: float = 0
+    boost_time: int = 0
+    toggle_controls_rotation: bool = True
+    max_turn_angle: float = 0
+    last_collision_check = None
+
+
 class Game:
     def __init__(self) -> None:
         self.AllPlayers = dict()
@@ -88,11 +89,13 @@ class Game:
         self.StartPositions = [[0, 0, 0], [100, 0, 0], [200, 0, 0], [300, 0, 0], [400, 0, 0], [500, 0, 0]]
         self.UsersNum = 0
 
-    def playerReset(self):
+    def player_reset(self):
         TheGrid.UsersNum = 0
 
         for key in TheGrid.AllPlayers.keys():
             elem = TheGrid.AllPlayers[key]
+
+            elem.last_collision_check = None
             elem.x_trail = []
             elem.y_trail = []
             elem.z_trail = []
@@ -111,36 +114,40 @@ class Game:
     def collision_check(self):
         # TODO: Asymptotic of this algorithm seems very bad :(
 
-
+        global player
         for player_key in self.AllPlayers.keys():  # Bike which we check
             for enemy_key in self.AllPlayers.keys():  # Bike for collisions
+                player = self.AllPlayers[player_key]
+                enemy = self.AllPlayers[enemy_key]
+
                 for poly in range(self.AllPlayers[enemy_key].trail_size - 1):
-                    player = self.AllPlayers[player_key]
-                    enemy = self.AllPlayers[enemy_key]
-
                     try:
-                        a = Point(player.x, player.z)  # Bike coords
-                        b = Point(player.x + 6 * math.sin(player.heading),
-                                  player.z + 6 * math.cos(player.heading))  # Second point
+                        if player.last_collision_check is not None:
+                            a = Point(player.last_collision_check.x, player.last_collision_check.y)  # Bike coords
+                            b = Point(player.x + 6 * math.sin(player.heading),
+                                      player.z + 6 * math.cos(player.heading))  # Second point
 
-                        c = Point(enemy.x_trail[poly], enemy.z_trail[poly])  # Trail part 1
-                        d = Point(enemy.x_trail[poly + 1], enemy.z_trail[poly + 1])  # Trail part 2
+                            c = Point(enemy.x_trail[poly], enemy.z_trail[poly])  # Trail part 1
+                            d = Point(enemy.x_trail[poly + 1], enemy.z_trail[poly + 1])  # Trail part 2
 
-                        line1 = (Point(c, b).cp(Point(c, d)) > 0) == (Point(c, d).cp(Point(c, a)) > 0)
-                        line2 = (Point(a, c).cp(Point(a, b)) > 0) == (Point(a, b).cp(Point(a, d)) > 0)
+                            line1 = (Point(c, b).cp(Point(c, d)) > 0) == (Point(c, d).cp(Point(c, a)) > 0)
+                            line2 = (Point(a, c).cp(Point(a, b)) > 0) == (Point(a, b).cp(Point(a, d)) > 0)
 
-                        if line1 and line2:
-                            parallel1 = max(a.x, b.x) >= min(c.x, d.x) and min(a.x, b.x) <= max(c.x, d.x)
-                            parallel2 = max(a.y, b.y) >= min(c.y, d.y) and min(a.y, b.y) <= max(c.y, d.y)
+                            if line1 and line2:
+                                parallel1 = max(a.x, b.x) >= min(c.x, d.x) and min(a.x, b.x) <= max(c.x, d.x)
+                                parallel2 = max(a.y, b.y) >= min(c.y, d.y) and min(a.y, b.y) <= max(c.y, d.y)
 
-                            if parallel1 and parallel2 and not player.dead:
-                                player.dead = True
-                                self.UsersNum -= 1
-                                if TheGrid.UsersNum <= 1:
-                                    TheGrid.playerReset()
-
+                                if parallel1 and parallel2 and not player.dead:
+                                    player.dead = True
+                                    self.UsersNum -= 1
+                                    if TheGrid.UsersNum <= 1:
+                                        TheGrid.player_reset()
                     except:
                         pass
+
+            player.last_collision_check = Point(player.x + 1 * math.sin(player.heading),
+                                      player.z + 1 * math.cos(player.heading))
+
 
         for bike_key in self.AllPlayers.keys():
             try:
@@ -166,7 +173,7 @@ class Game:
                 self.AllPlayers[bike_key].dead = True
                 self.UsersNum -= 1
                 if self.UsersNum <= 1:
-                    self.playerReset()
+                    self.player_reset()
 
             if self.AllPlayers[bike_key].dead:
                 continue
@@ -256,7 +263,7 @@ def add(username):
     print('New user')
     if username not in TheGrid.AllPlayers.keys():
         if len(TheGrid.AllPlayers) == 1:
-            TheGrid.playerReset()
+            TheGrid.player_reset()
 
         TheGrid.LastTrail[username] = Point3d(0, 0, 0)
         start_position = TheGrid.StartPositions[TheGrid.UsersNum]
