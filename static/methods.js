@@ -56,7 +56,7 @@ function init() {
     let scene = new THREE.Scene();
     let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
 
-    let renderer = new THREE.WebGLRenderer({antialias: true});
+    let renderer = new THREE.WebGLRenderer( {antialias: true} );
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     document.body.appendChild(renderer.domElement);
@@ -124,7 +124,7 @@ function init() {
         } );
 
     // light
-    let ambientLight = new THREE.AmbientLight(0xFFFFFF, 8);
+    let ambientLight = new THREE.AmbientLight( 0xFFFFFF, 8 );
     scene.add(ambientLight);
 
     camera.position.set(0, 8, -15);
