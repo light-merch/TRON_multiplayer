@@ -166,8 +166,7 @@ class Game:
             for i in range(len(self.boosters)):
                 dx = self.boosters[i].x - self.AllPlayers[bike].x
                 dz = self.boosters[i].z - self.AllPlayers[bike].z
-                r = 4
-                if math.sqrt(dx * dx + dz * dz) <= r:
+                if math.sqrt(dx * dx + dz * dz) <= 5:
                     self.AllPlayers[bike].booster += 1
                     self.boosters.pop(i)
                     converted = []
@@ -206,8 +205,9 @@ class Game:
 
         if current_time - self.LastBoosters > (10 * 1000) and len(self.boosters) < 10 and self.UsersNum:
             for i in range(min(3, 10 - len(self.boosters))):
-                r = 1000
-                self.boosters.append(Point3d(randint(-r, r), 1, randint(-r, r)))
+                rx = 500
+                ry = 800
+                self.boosters.append(Point3d(randint(-rx, rx), 1, randint(-ry, ry)))
             converted = []
 
             for i in self.boosters:
@@ -293,7 +293,6 @@ def add(username):
         for i in TheGrid.boosters:
             converted.append({"x": i.x, "y": i.y, "z": i.z })
         socketio.emit('booster', json.dumps(converted))
-    
 
 
 @socketio.on('remove_user')
