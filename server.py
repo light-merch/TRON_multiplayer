@@ -169,15 +169,15 @@ class Game:
                 pass
 
         for bike in self.AllPlayers.keys():
-            for i in range(len(self.boosters)):
-                dx = self.boosters[i].x - self.AllPlayers[bike].x
-                dz = self.boosters[i].z - self.AllPlayers[bike].z
+            for boosterInd in range(len(self.boosters)):
+                dx = self.boosters[boosterInd].x - self.AllPlayers[bike].x
+                dz = self.boosters[boosterInd].z - self.AllPlayers[bike].z
                 if math.sqrt(dx * dx + dz * dz) <= 5 and self.AllPlayers[bike].booster <= 5:
                     self.AllPlayers[bike].booster += 1
-                    self.boosters.pop(i)
+                    self.boosters.pop(boosterInd)
                     converted = []
-                    for i in self.boosters:
-                        converted.append({"x": i.x, "y": i.y, "z": i.z })
+                    for booster in self.boosters:
+                        converted.append({"x": booster.x, "y": booster.y, "z": booster.z })
                     socketio.emit('booster', json.dumps(converted))
                     break
 
@@ -302,8 +302,8 @@ def add(username):
                                               username, TheGrid.Speed, [], [], [])
         TheGrid.UsersNum += 1
         converted = []
-        for i in TheGrid.boosters:
-            converted.append({"x": i.x, "y": i.y, "z": i.z })
+        for booster in TheGrid.boosters:
+            converted.append({"x": booster.x, "y": booster.y, "z": booster.z })
         socketio.emit('booster', json.dumps(converted))
 
 
