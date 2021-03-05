@@ -16,6 +16,7 @@ app = Flask(__name__, static_url_path='')
 socketio = SocketIO(app, async_mode=async_mode)
 
 latin_letters = {}
+SPAWN_R = 400
 
 
 # TODO: rewrite this :D
@@ -64,13 +65,13 @@ class Player:
 
     player_name: str
     speed: float
+    heading: float
     x_trail: list
     y_trail: list
     z_trail: list
 
     dead: bool = False
     trail_size: int = 0
-    heading: float = 0
     rotation: float = 0
     boost_time: int = 0
     toggle_controls_rotation: bool = True
@@ -86,14 +87,14 @@ class Game:
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
         self.TurnSpeed = 0.05
         self.Speed = 0.03
-        self.StartPositions = [[0, 0, 0], [100, 0, 0], [200, 0, 0], [300, 0, 0], [400, 0, 0], [500, 0, 0]]
+        self.StartPositions = [0, 45, 90, 135, 180, 225, 270, 315]
         self.UsersNum = 0
 
     def player_reset(self):
         TheGrid.UsersNum = 0
 
-        for key in TheGrid.AllPlayers.keys():
-            elem = TheGrid.AllPlayers[key]
+        for key in self.AllPlayers.keys():
+            elem = self.AllPlayers[key]
 
             elem.last_collision_check = None
             elem.x_trail = []
@@ -101,12 +102,16 @@ class Game:
             elem.z_trail = []
             elem.trail_size = 0
             elem.rotation = 0
-            elem.heading = 0
             elem.dead = False
 
-            elem.x = TheGrid.StartPositions[TheGrid.UsersNum][0]
-            elem.y = TheGrid.StartPositions[TheGrid.UsersNum][1]
-            elem.z = TheGrid.StartPositions[TheGrid.UsersNum][2]
+            angle = TheGrid.StartPositions[TheGrid.UsersNum] * math.pi / 180
+            a = Point(SPAWN_R * math.cos(angle), SPAWN_R * math.sin(angle))
+            b = Point(0, 800)
+            elem.heading = math.atan2(a.cp(b), a.dp(b)) - math.pi
+
+            elem.y = 0
+            elem.x = SPAWN_R * math.cos(angle)
+            elem.z = SPAWN_R * math.sin(angle)
 
             TheGrid.UsersNum += 1
 
@@ -266,9 +271,12 @@ def add(username):
             TheGrid.player_reset()
 
         TheGrid.LastTrail[username] = Point3d(0, 0, 0)
-        start_position = TheGrid.StartPositions[TheGrid.UsersNum]
-        TheGrid.AllPlayers[username] = Player(start_position[0], start_position[1], start_position[2],
-                                              username, TheGrid.Speed, [], [], [])
+        angle = TheGrid.StartPositions[TheGrid.UsersNum] * math.pi / 180
+        a = Point(SPAWN_R * math.cos(angle), SPAWN_R * math.sin(angle))
+        b = Point(0, 800)
+
+        TheGrid.AllPlayers[username] = Player(SPAWN_R * math.cos(angle), 0, SPAWN_R * math.sin(angle),
+                                              username, TheGrid.Speed, math.atan2(a.cp(b), a.dp(b)) - math.pi, [], [], [])
         TheGrid.UsersNum += 1
 
 

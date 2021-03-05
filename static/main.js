@@ -74,7 +74,7 @@ window.onload = function() {
     });
 
     socket.on("update", function(msg) {
-        if (!window.gameBegin) {
+        if (!window.gameBegin || window.bike === undefined) {
             return;
         }
 
@@ -87,7 +87,10 @@ window.onload = function() {
         camera.position.y += currentPlayer["y"] - lastY;
         camera.position.z += currentPlayer["z"] - lastZ;
 
-        let angle = lastHeading - currentPlayer["heading"] % (2 * Math.PI);
+        let angle = lastHeading - currentPlayer["heading"];
+        if (angle >= 360) {
+            lastHeading += Math.trunc(angle / 360) * 360;
+        }
         if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
             if (angle > 0) {
                 angle = Math.min(angle, 0.04);
