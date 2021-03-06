@@ -15,11 +15,24 @@ function httpGet(Url) {
 
 
 window.onload = function() {
+    let tmp = GRID.init();
+    let scene = tmp[0];
+    let renderer = tmp[1];
+    let camera = tmp[2];
+    let controls = tmp[3];
+
+    let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
+    window.gameBegin = false;
+    window.names = {};
+    const MAX_POINTS = 30000;
+    let lastBufferIndex = 0, cameraIsNull = true;
+
+
     const FizzyText = function () {
         this.username = GRID.generateUsername(6);
         this.error = "";
 
-        this.submit_name = function () {
+        this.submitName = function () {
             // create an AudioListener and add it to the camera
             const listener = new THREE.AudioListener();
             camera.add( listener );
@@ -66,7 +79,7 @@ window.onload = function() {
     });
 
     gui.add(fizzyText, "username").name("Enter username");
-    gui.add(fizzyText, "submit_name").name("Enter game");
+    gui.add(fizzyText, "submitName").name("Enter game");
 
 
     socket.on("connect", function() {
@@ -87,7 +100,7 @@ window.onload = function() {
 
 
     socket.on("update", function(msg) {
-        if (!window.gameBegin) {
+        if (!window.gameBegin || typeof window.bike === "undefined") {
             return;
         }
 
@@ -96,23 +109,43 @@ window.onload = function() {
         if (currentPlayer === undefined) {
             return;
         }
-        camera.position.x += currentPlayer["x"] - lastX;
-        camera.position.y += currentPlayer["y"] - lastY;
-        camera.position.z += currentPlayer["z"] - lastZ;
 
-        let angle = lastHeading - currentPlayer["heading"] % (2 * Math.PI);
-        if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
-            if (angle > 0) {
-                angle = Math.min(angle, 0.04);
-            } else {
-                angle = Math.max(angle, -0.04);
+        if (cameraIsNull) {
+            cameraIsNull = false;
+
+            camera.position.y = 10;
+            camera.position.x = currentPlayer["x"] + 15 * Math.sin(currentPlayer["heading"] - Math.PI);
+            camera.position.z = currentPlayer["z"] + 15 * Math.cos(currentPlayer["heading"] - Math.PI);
+
+            lastX = currentPlayer["x"];
+            lastY = currentPlayer["y"];
+            lastZ = currentPlayer["z"];
+            lastHeading = currentPlayer["heading"];
+            console.log(camera.position);
+
+            camera.lookAt(window.bike);
+        } else {
+            camera.position.x += currentPlayer["x"] - lastX;
+            camera.position.y += currentPlayer["y"] - lastY;
+            camera.position.z += currentPlayer["z"] - lastZ;
+
+            let angle = lastHeading - currentPlayer["heading"];
+            if (angle >= 360) {
+                lastHeading += Math.trunc(angle / 360) * 360;
             }
-            let x = [camera.position.x, window.bike.position.x];
-            let y = [camera.position.z, window.bike.position.z];
-            camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
-            camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
+            if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
+                if (angle > 0) {
+                    angle = Math.min(angle, 0.04);
+                } else {
+                    angle = Math.max(angle, -0.04);
+                }
+                let x = [camera.position.x, window.bike.position.x];
+                let y = [camera.position.z, window.bike.position.z];
+                camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
+                camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
 
-            lastHeading -= angle;
+                lastHeading -= angle;
+            }
         }
 
         // Update user"s bike
@@ -249,21 +282,6 @@ window.onload = function() {
         }
     }
 
-
-
-    let tmp = GRID.init();
-    let scene = tmp[0];
-    let renderer = tmp[1];
-    let camera = tmp[2];
-    let controls = tmp[3];
-
-    let boosters = []
-
-    let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
-    window.gameBegin = false;
-    window.names = {};
-    const MAX_POINTS = 30000;
-    let lastBufferIndex = 0;
 
     const loader = new THREE.FontLoader();
     loader.load( "models/font.json", function (font) {

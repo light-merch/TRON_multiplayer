@@ -11,14 +11,18 @@ pip install flask flask-socketio eventlet
 ```
 Note that flask-socketio version should be at least 5.x 
 
-## Special thanks to these people:
+## Developers
 >
-> [Proskuriakov Dima](https://github.com/justdprroz) - Authentication server & ideas
+> [Artushkov Pavel](https://github.com/pavtiger) - Project idea & coding
+>
+> [Proskuriakov Dima](https://github.com/justdprroz) - Authentication server & coding
+> 
+
+## Special thanks to these people
 > 
 > [Shishkin Nikita](https://vk.com/nik.vile) - Photoshopping textures
 > 
 > [u/kod8ultimate](https://www.reddit.com/user/kod8ultimate/) - 3D models
 >
 
-## Author
-[Artushkov Pavel](https://github.com/pavtiger)
+
