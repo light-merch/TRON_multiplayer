@@ -100,7 +100,7 @@ window.onload = function() {
 
 
     socket.on("update", function(msg) {
-        if (!window.gameBegin || window.bike === undefined) {
+        if (!window.gameBegin || typeof window.bike === "undefined") {
             return;
         }
 
