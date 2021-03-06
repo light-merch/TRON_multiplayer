@@ -104,12 +104,11 @@ window.onload = function() {
             camera.position.x = currentPlayer["x"] + 15 * Math.sin(currentPlayer["heading"] - Math.PI);
             camera.position.z = currentPlayer["z"] + 15 * Math.cos(currentPlayer["heading"] - Math.PI);
 
-            lastX = currentPlayer["x"]
-            lastY = currentPlayer["y"]
-            lastZ = currentPlayer["z"]
-            lastHeading = currentPlayer["heading"]
+            lastX = currentPlayer["x"];
+            lastY = currentPlayer["y"];
+            lastZ = currentPlayer["z"];
+            lastHeading = currentPlayer["heading"];
             console.log(camera.position);
-            console.log(currentPlayer["x"] + ' ' + currentPlayer["z"]);
 
             camera.lookAt(window.bike);
         } else {

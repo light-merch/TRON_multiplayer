@@ -22,7 +22,7 @@ function generateUsername(length) {
     }
 
     let result = "";
-    while (!httpGet("/check/" + result)["status"] === "false") {
+    while (httpGet("/check/" + result)["status"] !== "false") {
         let characters = "abcdefghijklmnopqrstuvwxyz";
         for (let i = 0; i < length; i++) {
             result += characters.charAt(Math.floor(Math.random() * characters.length));
