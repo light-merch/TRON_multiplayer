@@ -73,7 +73,7 @@ function init() {
         if ( xhr.lengthComputable ) {
             const percentComplete = xhr.loaded / xhr.total * 100;
             // TODO: create a loading screen
-            // console.log( Math.round(percentComplete, 2) + "% downloaded" );
+            console.log( Math.round(percentComplete) + "% downloaded" );
         }
     };
     const onError = function () { };
