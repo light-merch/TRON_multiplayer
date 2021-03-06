@@ -127,11 +127,6 @@ function init() {
     let ambientLight = new THREE.AmbientLight(0xFFFFFF, 8);
     scene.add(ambientLight);
 
-    camera.position.set(0, 8, -15);
-
-    camera.rotation.y = 3.14;
-    camera.rotation.x = 0.6;
-
     return [scene, renderer, camera, controls]
 }
 

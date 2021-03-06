@@ -87,7 +87,7 @@ class Game:
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
         self.TurnSpeed = 0.05
         self.Speed = 0.03
-        self.StartPositions = [0, 45, 90, 135, 180, 225, 270, 315]
+        self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315]
         self.UsersNum = 0
 
     def player_reset(self):

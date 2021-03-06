@@ -15,6 +15,19 @@ function httpGet(Url) {
 
 
 window.onload = function() {
+    let tmp = GRID.init();
+    let scene = tmp[0];
+    let renderer = tmp[1];
+    let camera = tmp[2];
+    let controls = tmp[3];
+
+    let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
+    window.gameBegin = false;
+    window.names = {};
+    const MAX_POINTS = 30000;
+    let lastBufferIndex = 0, camera_is_null = true;
+
+
     const FizzyText = function () {
         this.username = GRID.generateUsername(6);
         this.error = "";
@@ -83,26 +96,44 @@ window.onload = function() {
         if (currentPlayer === undefined) {
             return;
         }
-        camera.position.x += currentPlayer["x"] - lastX;
-        camera.position.y += currentPlayer["y"] - lastY;
-        camera.position.z += currentPlayer["z"] - lastZ;
 
-        let angle = lastHeading - currentPlayer["heading"];
-        if (angle >= 360) {
-            lastHeading += Math.trunc(angle / 360) * 360;
-        }
-        if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
-            if (angle > 0) {
-                angle = Math.min(angle, 0.04);
-            } else {
-                angle = Math.max(angle, -0.04);
+        if (camera_is_null) {
+            camera_is_null = false;
+
+            camera.position.y = 10;
+            camera.position.x = currentPlayer["x"] + 15 * Math.sin(currentPlayer["heading"] - Math.PI);
+            camera.position.z = currentPlayer["z"] + 15 * Math.cos(currentPlayer["heading"] - Math.PI);
+
+            lastX = currentPlayer["x"]
+            lastY = currentPlayer["y"]
+            lastZ = currentPlayer["z"]
+            lastHeading = currentPlayer["heading"]
+            console.log(camera.position);
+            console.log(currentPlayer["x"] + ' ' + currentPlayer["z"]);
+
+            camera.lookAt(window.bike);
+        } else {
+            camera.position.x += currentPlayer["x"] - lastX;
+            camera.position.y += currentPlayer["y"] - lastY;
+            camera.position.z += currentPlayer["z"] - lastZ;
+
+            let angle = lastHeading - currentPlayer["heading"];
+            if (angle >= 360) {
+                lastHeading += Math.trunc(angle / 360) * 360;
             }
-            let x = [camera.position.x, window.bike.position.x];
-            let y = [camera.position.z, window.bike.position.z];
-            camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
-            camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
+            if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
+                if (angle > 0) {
+                    angle = Math.min(angle, 0.04);
+                } else {
+                    angle = Math.max(angle, -0.04);
+                }
+                let x = [camera.position.x, window.bike.position.x];
+                let y = [camera.position.z, window.bike.position.z];
+                camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
+                camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
 
-            lastHeading -= angle;
+                lastHeading -= angle;
+            }
         }
 
         // Update user"s bike
@@ -230,19 +261,6 @@ window.onload = function() {
         }
     }
 
-
-
-    let tmp = GRID.init();
-    let scene = tmp[0];
-    let renderer = tmp[1];
-    let camera = tmp[2];
-    let controls = tmp[3];
-
-    let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
-    window.gameBegin = false;
-    window.names = {};
-    const MAX_POINTS = 30000;
-    let lastBufferIndex = 0;
 
     const loader = new THREE.FontLoader();
     loader.load( "models/font.json", function (font) {
