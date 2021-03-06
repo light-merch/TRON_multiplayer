@@ -4,6 +4,7 @@ import unicodedata as ud
 import json
 import math
 import time
+from random import randint
 
 import eventlet
 from flask_socketio import SocketIO
@@ -70,6 +71,7 @@ class Player:
     y_trail: list
     z_trail: list
 
+    booster: int = 0
     dead: bool = False
     trail_size: int = 0
     rotation: float = 0
@@ -83,8 +85,9 @@ class Game:
     def __init__(self) -> None:
         self.AllPlayers = dict()
         self.LastTrail = dict()
-
+        self.boosters = list()
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
+        self.LastBoosters = int(time.time() * 1000)
         self.TurnSpeed = 0.05
         self.Speed = 0.03
         self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315]
@@ -170,6 +173,21 @@ class Game:
             except:
                 pass
 
+        for bike in self.AllPlayers.keys():
+            for boosterInd in range(len(self.boosters)):
+                dx = self.boosters[boosterInd].x - self.AllPlayers[bike].x
+                dz = self.boosters[boosterInd].z - self.AllPlayers[bike].z
+                if math.sqrt(dx * dx + dz * dz) <= 5 and self.AllPlayers[bike].booster <= 5:
+                    self.AllPlayers[bike].booster += 1
+                    self.boosters.pop(boosterInd)
+                    converted = []
+                    for booster in self.boosters:
+                        converted.append({"x": booster.x, "y": booster.y, "z": booster.z })
+                    socketio.emit('booster', json.dumps(converted))
+                    break
+
+
+
     # Compute movements of all bikes in since last calculation
     def update(self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
@@ -202,6 +220,18 @@ class Game:
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
 
+        if current_time - self.LastBoosters > (10 * 1000) and len(self.boosters) < 10 and self.UsersNum:
+            for i in range(min(3, 10 - len(self.boosters))):
+                rx = 500
+                ry = 800
+                self.boosters.append(Point3d(randint(-rx, rx), 1, randint(-ry, ry)))
+            converted = []
+
+            for i in self.boosters:
+                converted.append({"x": i.x, "y": i.y, "z": i.z })
+
+            socketio.emit('booster', json.dumps(converted))
+            self.LastBoosters = current_time
         self.LastTime = current_time
 
 
@@ -249,7 +279,8 @@ def down(data):
             TheGrid.AllPlayers[username].max_turn_angle = -0.7
         elif data['key'] == 16:  # Shift
             TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
-            TheGrid.AllPlayers[username].boost_time = 2000
+            TheGrid.AllPlayers[username].boost_time = 1000 * TheGrid.AllPlayers[username].booster
+            TheGrid.AllPlayers[username].booster = 0
         elif data['key'] == 67:  # C
             TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[
                 username].toggle_controls_rotation
@@ -278,6 +309,10 @@ def add(username):
         TheGrid.AllPlayers[username] = Player(SPAWN_R * math.cos(angle), 0, SPAWN_R * math.sin(angle),
                                               username, TheGrid.Speed, math.atan2(a.cp(b), a.dp(b)) - math.pi, [], [], [])
         TheGrid.UsersNum += 1
+        converted = []
+        for booster in TheGrid.boosters:
+            converted.append({"x": booster.x, "y": booster.y, "z": booster.z })
+        socketio.emit('booster', json.dumps(converted))
 
 
 @socketio.on('remove_user')
@@ -299,7 +334,7 @@ def game_loop(name):
         for player in TheGrid.AllPlayers.items():
             converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
                                     'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
-                                    'rotation': player[1].rotation, 'status': player[1].dead}
+                                    'rotation': player[1].rotation, 'status': player[1].dead, 'boosters': player[1].booster}
 
         if len(TheGrid.AllPlayers) != 0:
             socketio.emit('update', json.dumps(converted))

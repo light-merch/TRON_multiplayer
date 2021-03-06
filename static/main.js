@@ -86,6 +86,19 @@ window.onload = function() {
         socket.emit("message", "I am connected");
     });
 
+
+    socket.on("booster", function(msg) {
+        let b = JSON.parse(msg);
+        const geometry = new THREE.SphereGeometry( 2, 32, 32 );
+        const material = new THREE.MeshBasicMaterial( {color: 0xff00ff} );
+        for (let i = 0; i < b.length; i++){
+            boosters.push(new THREE.Mesh( geometry, material));
+            boosters[i].position.set(b[i].x, b[i].y, b[i].z);
+            scene.add(boosters[i]);
+        }
+    });
+
+
     socket.on("update", function(msg) {
         if (!window.gameBegin || window.bike === undefined) {
             return;
@@ -141,7 +154,16 @@ window.onload = function() {
         window.bike.rotation.z = -currentPlayer["rotation"];
         controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
-
+        let boostersgui = document.getElementsByClassName("boosters")[0].getElementsByTagName("div");
+        for(var i = 0; i < 5; i++){
+            let boost = boostersgui[i];
+            if (i < currentPlayer["boosters"]){
+                boost.setAttribute("class", "purple")
+            }
+            else {
+                boost.setAttribute("class", "grey")
+            }
+        }
 
         // Display all players
         for (let key in allPlayers) {
