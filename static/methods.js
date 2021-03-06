@@ -21,21 +21,19 @@ function generateUsername(length) {
         }
     }
 
-    var result = "";
-    while (true) {
-        var characters = "abcdefghijklmnopqrstuvwxyz0123456789";
-        for (var i = 0; i < length; i++) {
+    let result = "";
+    while (!httpGet("/check/" + result)["status"] === "false") {
+        let characters = "abcdefghijklmnopqrstuvwxyz";
+        for (let i = 0; i < length; i++) {
             result += characters.charAt(Math.floor(Math.random() * characters.length));
         }
-        if (httpGet("/check/" + result)["status"] === "false") {
-            return result;
-        }
     }
+    return result;
 }
 
 
 function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 
@@ -127,7 +125,7 @@ function init() {
     let ambientLight = new THREE.AmbientLight(0xFFFFFF, 8);
     scene.add(ambientLight);
 
-    return [scene, renderer, camera, controls]
+    return [scene, renderer, camera, controls];
 }
 
 

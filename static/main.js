@@ -25,14 +25,14 @@ window.onload = function() {
     window.gameBegin = false;
     window.names = {};
     const MAX_POINTS = 30000;
-    let lastBufferIndex = 0, camera_is_null = true;
+    let lastBufferIndex = 0, cameraIsNull = true;
 
 
     const FizzyText = function () {
         this.username = GRID.generateUsername(6);
         this.error = "";
 
-        this.submit_name = function () {
+        this.submitName = function () {
             // create an AudioListener and add it to the camera
             const listener = new THREE.AudioListener();
             camera.add( listener );
@@ -79,7 +79,7 @@ window.onload = function() {
     });
 
     gui.add(fizzyText, "username").name("Enter username");
-    gui.add(fizzyText, "submit_name").name("Enter game");
+    gui.add(fizzyText, "submitName").name("Enter game");
 
 
     socket.on("connect", function() {
@@ -97,8 +97,8 @@ window.onload = function() {
             return;
         }
 
-        if (camera_is_null) {
-            camera_is_null = false;
+        if (cameraIsNull) {
+            cameraIsNull = false;
 
             camera.position.y = 10;
             camera.position.x = currentPlayer["x"] + 15 * Math.sin(currentPlayer["heading"] - Math.PI);
