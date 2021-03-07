@@ -67,6 +67,7 @@ class Player:
     player_name: str
     speed: float
     heading: float
+    last_seen: int
     x_trail: list
     y_trail: list
     z_trail: list
@@ -93,6 +94,7 @@ class Game:
         self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315]
         self.UsersNum = 0
 
+
     def player_reset(self):
         socketio.emit('clear')
         TheGrid.UsersNum = 0
@@ -118,6 +120,7 @@ class Game:
             elem.z = SPAWN_R * math.sin(angle)
 
             TheGrid.UsersNum += 1
+
 
     # Collision check
     def collision_check(self):
@@ -294,6 +297,11 @@ def handle_message(data):
     print('received message: ' + data)
 
 
+@socketio.on('live')
+def alive(username):
+    TheGrid.AllPlayer[username].last_seen -=
+
+
 # When user chooses a name he submits his final name and we add him to the table
 @socketio.on('add_user')
 def add(username):
@@ -349,6 +357,16 @@ def collisions(name):
         time.sleep(0.1)
 
 
+# Third parallel thread for checking if a user hasn't checked in for some time
+def probes(name):
+    while True:
+        for obj in TheGrid.AllPlayer:
+            obj.last_seen += 1
+
+        socketio.emit('probe')
+        time.sleep(10)
+
+
 if __name__ == "__main__":
     TheGrid = Game()
     eventlet.monkey_patch()
@@ -358,5 +376,8 @@ if __name__ == "__main__":
 
     y = Thread(target=collisions, args=(1,))
     y.start()
+
+    z = Thread(target=probes, args=(1,))
+    z.start()
 
     socketio.run(app, host=ip_address, port=port)

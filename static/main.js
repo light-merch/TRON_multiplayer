@@ -87,6 +87,10 @@ window.onload = function() {
         socket.emit("message", "I am connected");
     });
 
+    socket.on("probe", function() {
+        socket.emit("live", "I am connected");
+    });
+
     socket.on("clear", function() {
         while (scene.getObjectByName("trail") !== undefined) {
             let selectedObject = scene.getObjectByName("trail");
@@ -94,24 +98,7 @@ window.onload = function() {
         }
 
         for (let key in allPlayers) {
-            console.log(key);
             trail_geometry[key] = undefined;
-    //         trail_vertices[key] = new Float32Array(MAX_POINTS * 3);
-    //         lastTrail[key] = [new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]),
-    //             new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"] + 1, allPlayers[key]["z"])];
-    //         mainLastTrail[key] = Object.assign({}, lastTrail[key]);
-    //
-    //         // Trail init
-    //         trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
-    //         let trail_material = new THREE.MeshBasicMaterial({color: 0x0fbef2, wireframe: false});
-    //         let mesh = new THREE.Mesh(trail_geometry[key], trail_material);
-    //         scene.add(mesh);
-    //         mesh.traverse(function (node) {
-    //             if (node.material) {
-    //                 node.material.side = THREE.DoubleSide;
-    //             }
-    //         });
-    //         mesh.frustumCulled = false;
         }
     });
 
