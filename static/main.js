@@ -21,6 +21,8 @@ window.onload = function() {
     let camera = tmp[2];
     let controls = tmp[3];
 
+    let boosters = []
+
     let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
     window.gameBegin = false;
     window.names = {};
