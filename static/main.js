@@ -21,6 +21,8 @@ window.onload = function() {
     let camera = tmp[2];
     let controls = tmp[3];
 
+    let boosters = []
+
     let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
     window.gameBegin = false;
     window.names = {};
@@ -92,7 +94,7 @@ window.onload = function() {
         const geometry = new THREE.SphereGeometry( 2, 32, 32 );
         const material = new THREE.MeshBasicMaterial( {color: 0xff00ff} );
         for (let i = 0; i < b.length; i++){
-            boosters.push(new THREE.Mesh( geometry, material));
+            boosters.push(new THREE.Mesh( geometry, material ));
             boosters[i].position.set(b[i].x, b[i].y, b[i].z);
             scene.add(boosters[i]);
         }
@@ -256,7 +258,7 @@ window.onload = function() {
                     vehicles[key].rotation.y = allPlayers[key].heading;
                     window.names[key].position.set(allPlayers[key].x, allPlayers[key].y + 3, allPlayers[key].z);
                     // Rotate username to face user
-                    window.names[key].lookAt(window.bike.position.x, window.bike.position.y + 3, window.bike.position.z);
+                    window.names[key].lookAt(camera.position.x, 3, camera.position.z);
                 }
             }
         }
