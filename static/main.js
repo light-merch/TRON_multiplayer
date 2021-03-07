@@ -163,12 +163,12 @@ window.onload = function() {
             }
         }
 
-        // Update user"s bike
+        // Update user's bike
         window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
         window.bike.rotation.y = currentPlayer["heading"];
         window.bike.rotation.z = -currentPlayer["rotation"];
         controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
-
+        // Update boosters counter
         let boostersgui = document.getElementsByClassName("boosters")[0].getElementsByTagName("div");
         for(var i = 0; i < 5; i++){
             let boost = boostersgui[i];
@@ -179,6 +179,9 @@ window.onload = function() {
                 boost.setAttribute("class", "grey")
             }
         }
+        // Update score
+        document.getElementById("scorenumber").innerHTML = currentPlayer["score"];
+
 
         // Display all players
         for (let key in allPlayers) {
