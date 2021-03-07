@@ -91,7 +91,8 @@ class Game:
         self.LastBoosters = int(time.time() * 1000)
         self.TurnSpeed = 0.05
         self.Speed = 0.03
-        self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315]
+        self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315, 0, 200, 110, 290, 340, 160, 70, 250, 225, 320,
+                               1, 5, 10, 15, 20, 25, 30, 35, 35, 35, 35, 35, 35, 35, 35, 35]
         self.UsersNum = 0
 
     def player_reset(self):
