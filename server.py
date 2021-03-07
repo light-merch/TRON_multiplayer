@@ -72,6 +72,7 @@ class Player:
     z_trail: list
 
     booster: int = 0
+    score: int = 0
     dead: bool = False
     trail_size: int = 0
     rotation: float = 0
@@ -147,6 +148,8 @@ class Game:
 
                                 if parallel1 and parallel2 and not player.dead:
                                     player.dead = True
+                                    if player_key != enemy_key:
+                                        enemy.score += 1
                                     self.UsersNum -= 1
                                     if TheGrid.UsersNum <= 1:
                                         TheGrid.player_reset()
@@ -332,9 +335,15 @@ def game_loop(name):
         # Convert to JSON
         converted = dict()
         for player in TheGrid.AllPlayers.items():
-            converted[player[0]] = {'x': player[1].x, 'y': player[1].y, 'z': player[1].z,
-                                    'heading': player[1].heading, 'controls': player[1].toggle_controls_rotation,
-                                    'rotation': player[1].rotation, 'status': player[1].dead, 'boosters': player[1].booster}
+            converted[player[0]] = {'x': player[1].x, 
+                                    'y': player[1].y, 
+                                    'z': player[1].z,
+                                    'heading': player[1].heading, 
+                                    'controls': player[1].toggle_controls_rotation,
+                                    'rotation': player[1].rotation, 
+                                    'status': player[1].dead, 
+                                    'boosters': player[1].booster,
+                                    'score': player[1].score}
 
         if len(TheGrid.AllPlayers) != 0:
             socketio.emit('update', json.dumps(converted))

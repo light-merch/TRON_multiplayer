@@ -11,6 +11,15 @@
                 position: absolute;
                 bottom: 0px;
             }
+            .score {
+                position: absolute;
+                bottom: 45px;
+            }
+            .score > div {
+                z-index: 1;
+                font-size: 32px;
+                color: #bbb;
+            }
             .grey{
                 background-color: #bbb;
             }
@@ -35,7 +44,10 @@
         <script src="//js.honeybadger.io/v3.0/honeybadger.min.js" type="text/javascript"></script>
 
         <script type="text/javascript" src="app_type.js"></script>
-
+        <div class="score">
+            <div style="float: left;margin-right: 10px;">Score </div>
+            <div style="float: right;" id="scorenumber"></div>
+        </div>
         <div class="boosters">
             <div id="1" class="grey"></div>
             <div id="2" class="grey"></div>
