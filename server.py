@@ -94,6 +94,7 @@ class Game:
         self.UsersNum = 0
 
     def player_reset(self):
+        socketio.emit('clear')
         TheGrid.UsersNum = 0
 
         for key in self.AllPlayers.keys():
@@ -296,7 +297,6 @@ def handle_message(data):
 # When user chooses a name he submits his final name and we add him to the table
 @socketio.on('add_user')
 def add(username):
-    print('New user')
     if username not in TheGrid.AllPlayers.keys():
         if len(TheGrid.AllPlayers) == 1:
             TheGrid.player_reset()
