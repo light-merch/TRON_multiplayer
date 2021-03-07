@@ -1,3 +1,5 @@
+[![DeepScan grade](https://deepscan.io/api/teams/13127/projects/16139/branches/339902/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=13127&pid=16139&bid=339902)
+
 # TRON Multiplayer
 
 This a multiplayer game based on film "TRON Legacy". The game is written on JavaScript 
