@@ -302,7 +302,7 @@ def handle_message(data):
 
 @socketio.on('live')
 def alive(username):
-    TheGrid.AllPlayer[username].last_seen -=
+    TheGrid.AllPlayers[username].last_seen -= int(time.time() * 1000)
 
 
 # When user chooses a name he submits his final name and we add him to the table
@@ -318,7 +318,8 @@ def add(username):
         b = Point(0, 800)
 
         TheGrid.AllPlayers[username] = Player(SPAWN_R * math.cos(angle), 0, SPAWN_R * math.sin(angle),
-                                              username, TheGrid.Speed, math.atan2(a.cp(b), a.dp(b)) - math.pi, [], [], [])
+                                              username, TheGrid.Speed, math.atan2(a.cp(b), a.dp(b)) - math.pi,
+                                              int(time.time() * 1000), [], [], [])
         TheGrid.UsersNum += 1
         converted = []
         for booster in TheGrid.boosters:
@@ -330,7 +331,8 @@ def add(username):
 def remove_user(username):
     print('remove_user')
     try:
-        del TheGrid.AllPlayers[username]
+        pass
+        # del TheGrid.AllPlayers[username]
     except:
         pass
 
@@ -369,8 +371,12 @@ def collisions(name):
 # Third parallel thread for checking if a user hasn't checked in for some time
 def probes(name):
     while True:
-        for obj in TheGrid.AllPlayer:
-            obj.last_seen += 1
+        for key in TheGrid.AllPlayers:
+            if int(time.time() * 1000) - TheGrid.AllPlayers[key].last_seen > 10000:
+                del TheGrid.AllPlayers[key]
+                print('deleted')
+
+
 
         socketio.emit('probe')
         time.sleep(10)

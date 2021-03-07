@@ -88,7 +88,7 @@ window.onload = function() {
     });
 
     socket.on("probe", function() {
-        socket.emit("live", "I am connected");
+        socket.emit("live", fizzyText.username);
     });
 
     socket.on("clear", function() {
