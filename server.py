@@ -91,8 +91,7 @@ class Game:
         self.LastBoosters = int(time.time() * 1000)
         self.TurnSpeed = 0.05
         self.Speed = 0.03
-        self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315, 0, 200, 110, 290, 340, 160, 70, 250, 225, 320,
-                               1, 5, 10, 15, 20, 25, 30, 35, 35, 35, 35, 35, 35, 35, 35, 35]
+        self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315, 0, 200, 110, 290, 340, 160, 70, 250, 225, 320]
         self.UsersNum = 0
 
     def player_reset(self):
@@ -268,7 +267,7 @@ def up(data):
     try:
         if data['key'] == 65:  # A
             TheGrid.AllPlayers[username].max_turn_angle = -0.0001
-        elif data['key'] == 68:  # D
+        elif data['key'] == 68: # D
             TheGrid.AllPlayers[username].max_turn_angle = 0.0001
     except:
         pass
@@ -284,7 +283,7 @@ def down(data):
             TheGrid.AllPlayers[username].max_turn_angle = -0.7
         elif data['key'] == 16:  # Shift
             TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
-            TheGrid.AllPlayers[username].boost_time = 1000 * TheGrid.AllPlayers[username].booster
+            TheGrid.AllPlayers[username].boost_time = 2000 * TheGrid.AllPlayers[username].booster
             TheGrid.AllPlayers[username].booster = 0
         elif data['key'] == 67:  # C
             TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[
@@ -295,12 +294,13 @@ def down(data):
 
 @socketio.on('message')
 def handle_message(data):
-    print('received message: ' + data)
+    print('received message:' + data)
 
 
 # When user chooses a name he submits his final name and we add him to the table
 @socketio.on('add_user')
-def add(username):
+def add(username, mobile):
+    print(mobile)
     if username not in TheGrid.AllPlayers.keys():
         if len(TheGrid.AllPlayers) == 1:
             TheGrid.player_reset()
