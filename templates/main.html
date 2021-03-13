@@ -7,6 +7,7 @@
         <style>
             body { margin: 0; overflow: hidden; }
             canvas { width: 100%; height: 100%; }
+
             .boosters {
                 position: absolute;
                 bottom: 0px;
@@ -20,11 +21,17 @@
                 font-size: 32px;
                 color: #bbb;
             }
+
             .grey{
                 background-color: #bbb;
             }
             .purple{
                 background-color: blueviolet;
+            }
+
+            .boosters {
+                position: absolute;
+                bottom: 0px;
             }
             .boosters > div {
                 height: 45px;
@@ -33,6 +40,23 @@
                 display: inline-block;
                 z-index: 1;
             }
+            .controls {
+                position: absolute;
+                bottom: 15%;
+                left: 15%;
+
+                height: 30%;
+                width: 30%;
+            }
+            .controls > div {
+                width: 30%;
+                display: inline-block;
+                z-index: 1;
+            }
+            .controls > div > img {
+                opacity: 1;
+                display: inline-block;
+            }
         </style>
     </head>
 
@@ -40,14 +64,17 @@
         <script src="stats.min.js"></script>
         <script src="dat.gui.min.js"></script>
         <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
-
         <script src="//js.honeybadger.io/v3.0/honeybadger.min.js" type="text/javascript"></script>
 
         <script type="text/javascript" src="app_type.js"></script>
+
+        <div class="controls"></div>
+
         <div class="score">
-            <div style="float: left;margin-right: 10px;">Score </div>
+            <div style="float: left; margin-right: 10px;">Score </div>
             <div style="float: right;" id="scorenumber"></div>
         </div>
+
         <div class="boosters">
             <div id="1" class="grey"></div>
             <div id="2" class="grey"></div>
@@ -55,7 +82,6 @@
             <div id="4" class="grey"></div>
             <div id="5" class="grey"></div>
         </div>
-
         <script type="module" src="main.js"></script>
     </body>
 </html>

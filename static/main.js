@@ -5,6 +5,12 @@ import * as GRID from "./methods.js"
 
 let socket = io("http://" + window.location.hostname + ":" + window.location.port);
 
+function isTouchDevice() {
+  return (('ontouchstart' in window) ||
+     (navigator.maxTouchPoints > 0) ||
+     (navigator.msMaxTouchPoints > 0));
+}
+
 
 function httpGet(Url) {
     let xmlHttp = new XMLHttpRequest();
@@ -15,12 +21,21 @@ function httpGet(Url) {
 
 
 window.onload = function() {
+    if (isTouchDevice()) {
+        document.getElementsByClassName("controls")[0].innerHTML =
+            "<div class=\"buttonleft\" style=\"float: left;\">\n" +
+            "                <img src=\"left.png\" alt=\"Left\" width=\"100%\" height=\"100%\">\n" +
+            "            </div>\n" +
+            "            <div class=\"buttonright\" style=\"float: right;\">\n" +
+            "                <img src=\"right.png\" alt=\"Right\" width=\"100%\" height=\"100%\">\n" +
+            "            </div>";
+    }
+
     let tmp = GRID.init();
     let scene = tmp[0];
     let renderer = tmp[1];
     let camera = tmp[2];
     let controls = tmp[3];
-
     let boosters = []
 
     let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
@@ -61,7 +76,7 @@ window.onload = function() {
                 }
             } else {
                 window.gameBegin = true;
-                socket.emit("add_user", fizzyText.username);
+                socket.emit("add_user", fizzyText.username, isTouchDevice());
                 GameLoop();
                 gui.destroy();
             }
@@ -94,24 +109,7 @@ window.onload = function() {
         }
 
         for (let key in allPlayers) {
-            console.log(key);
             trail_geometry[key] = undefined;
-    //         trail_vertices[key] = new Float32Array(MAX_POINTS * 3);
-    //         lastTrail[key] = [new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]),
-    //             new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"] + 1, allPlayers[key]["z"])];
-    //         mainLastTrail[key] = Object.assign({}, lastTrail[key]);
-    //
-    //         // Trail init
-    //         trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
-    //         let trail_material = new THREE.MeshBasicMaterial({color: 0x0fbef2, wireframe: false});
-    //         let mesh = new THREE.Mesh(trail_geometry[key], trail_material);
-    //         scene.add(mesh);
-    //         mesh.traverse(function (node) {
-    //             if (node.material) {
-    //                 node.material.side = THREE.DoubleSide;
-    //             }
-    //         });
-    //         mesh.frustumCulled = false;
         }
     });
 
@@ -181,6 +179,7 @@ window.onload = function() {
         window.bike.rotation.y = currentPlayer["heading"];
         window.bike.rotation.z = -currentPlayer["rotation"];
         controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
+
         // Update boosters counter
         let boostersgui = document.getElementsByClassName("boosters")[0].getElementsByTagName("div");
         for(var i = 0; i < 5; i++){
@@ -312,6 +311,40 @@ window.onload = function() {
         if (window.gameBegin) {
             socket.emit("keyup", {"user": fizzyText.username, "key": event.which});
         }
+    }
+
+
+    if (isTouchDevice()) {
+        let left = document.getElementsByClassName("buttonleft")[0];
+        let right = document.getElementsByClassName("buttonright")[0];
+
+        // Mouse events (for mobile)
+        left.addEventListener("touchstart", process_touchstart_l, false);
+        left.addEventListener("touchend", process_touchend_l, false);
+
+        right.addEventListener("touchstart", process_touchstart_r, false);
+        right.addEventListener("touchend", process_touchend_r, false);
+    }
+
+    // touchstart handler
+    function process_touchstart_l(ev) {
+        ev.preventDefault();
+        socket.emit("keydown", {"user": fizzyText.username, "key": 65});
+    }
+
+    function process_touchend_l(ev) {
+        ev.preventDefault();
+        socket.emit("keyup", {"user": fizzyText.username, "key": 65});
+    }
+
+    function process_touchstart_r(ev) {
+        ev.preventDefault();
+        socket.emit("keydown", {"user": fizzyText.username, "key": 68});
+    }
+
+    function process_touchend_r(ev) {
+        ev.preventDefault();
+        socket.emit("keyup", {"user": fizzyText.username, "key": 68});
     }
 
 
