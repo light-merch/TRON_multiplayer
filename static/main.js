@@ -21,6 +21,16 @@ function httpGet(Url) {
 
 
 window.onload = function() {
+    if (isTouchDevice()) {
+        document.getElementsByClassName("controls")[0].innerHTML =
+            "<div class=\"buttonleft\" style=\"float: left;\">\n" +
+            "                <img src=\"left.png\" alt=\"Left\" width=\"100%\" height=\"100%\">\n" +
+            "            </div>\n" +
+            "            <div class=\"buttonright\" style=\"float: right;\">\n" +
+            "                <img src=\"right.png\" alt=\"Right\" width=\"100%\" height=\"100%\">\n" +
+            "            </div>";
+    }
+
     let tmp = GRID.init();
     let scene = tmp[0];
     let renderer = tmp[1];
@@ -99,7 +109,6 @@ window.onload = function() {
         }
 
         for (let key in allPlayers) {
-            console.log(key);
             trail_geometry[key] = undefined;
         }
     });
@@ -305,15 +314,17 @@ window.onload = function() {
     }
 
 
-    let left = document.getElementsByClassName("buttonleft")[0];
-    let right = document.getElementsByClassName("buttonright")[0];
+    if (isTouchDevice()) {
+        let left = document.getElementsByClassName("buttonleft")[0];
+        let right = document.getElementsByClassName("buttonright")[0];
 
-    // Mouse events (for mobile)
-    left.addEventListener("touchstart", process_touchstart_l, false);
-    left.addEventListener("touchend", process_touchend_l, false);
+        // Mouse events (for mobile)
+        left.addEventListener("touchstart", process_touchstart_l, false);
+        left.addEventListener("touchend", process_touchend_l, false);
 
-    right.addEventListener("touchstart", process_touchstart_r, false);
-    right.addEventListener("touchend", process_touchend_r, false);
+        right.addEventListener("touchstart", process_touchstart_r, false);
+        right.addEventListener("touchend", process_touchend_r, false);
+    }
 
     // touchstart handler
     function process_touchstart_l(ev) {
