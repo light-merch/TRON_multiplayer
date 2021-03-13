@@ -305,28 +305,36 @@ window.onload = function() {
     }
 
 
+    let left = document.getElementsByClassName("buttonleft")[0];
+    let right = document.getElementsByClassName("buttonright")[0];
 
     // Mouse events (for mobile)
-    document.addEventListener("touchdown", process_touchstart, false);
-    document.addEventListener('touchend', process_touchend, false);
+    left.addEventListener("touchstart", process_touchstart_l, false);
+    left.addEventListener("touchend", process_touchend_l, false);
 
+    right.addEventListener("touchstart", process_touchstart_r, false);
+    right.addEventListener("touchend", process_touchend_r, false);
 
     // touchstart handler
-    function process_touchstart(ev) {
+    function process_touchstart_l(ev) {
         ev.preventDefault();
-        console.log('hello there');
-        ev.touches[0].clientX
+        socket.emit("keydown", {"user": fizzyText.username, "key": 65});
     }
 
-    function process_touchend(ev) {
-
+    function process_touchend_l(ev) {
+        ev.preventDefault();
+        socket.emit("keyup", {"user": fizzyText.username, "key": 65});
     }
 
-    // // touchmove handler
-    // function process_touchmove(ev) {
-    //   // Set call preventDefault()
-    //   ev.preventDefault();
-    // }
+    function process_touchstart_r(ev) {
+        ev.preventDefault();
+        socket.emit("keydown", {"user": fizzyText.username, "key": 68});
+    }
+
+    function process_touchend_r(ev) {
+        ev.preventDefault();
+        socket.emit("keyup", {"user": fizzyText.username, "key": 68});
+    }
 
 
     const loader = new THREE.FontLoader();
