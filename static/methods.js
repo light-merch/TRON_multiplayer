@@ -83,14 +83,14 @@ function init() {
 
     new MTLLoader(manager)
         .setPath("models/")
-        .load( "bike.mtl", function (materials) {
+        .load( "bike2.mtl", function (materials) {
 
             materials.preload();
 
             new OBJLoader(manager)
                 .setMaterials( materials )
                 .setPath("models/")
-                .load( "bike.obj", function (object) {
+                .load( "bike2.obj", function (object) {
                     let pivotPoint = new THREE.Object3D();
                     pivotPoint.add(object);
                     object.position.set(0, -0.3, 2);

@@ -294,7 +294,7 @@ def down(data):
 
 @socketio.on('message')
 def handle_message(data):
-    print('received message:' + data)
+    pass
 
 
 # When user chooses a name he submits his final name and we add him to the table
