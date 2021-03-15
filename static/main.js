@@ -334,7 +334,7 @@ window.onload = function() {
     // Window close event
     window.onunload = function() {
         if (window.gameBegin) {
-            socket.emit("remove_user", fizzyText.username);
+            // socket.emit("remove_user", fizzyText.username);
             GRID.sleep(1000);
         }
     }

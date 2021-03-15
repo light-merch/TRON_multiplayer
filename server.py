@@ -302,7 +302,10 @@ def handle_message(data):
 
 @socketio.on('live')
 def alive(username):
-    TheGrid.AllPlayers[username].last_seen -= int(time.time() * 1000)
+    try:
+        TheGrid.AllPlayers[username].last_seen = int(time.time() * 1000)
+    except:
+        pass
 
 
 # When user chooses a name he submits his final name and we add him to the table
@@ -331,8 +334,7 @@ def add(username):
 def remove_user(username):
     print('remove_user')
     try:
-        pass
-        # del TheGrid.AllPlayers[username]
+        del TheGrid.AllPlayers[username]
     except:
         pass
 
@@ -375,6 +377,8 @@ def probes(name):
             if int(time.time() * 1000) - TheGrid.AllPlayers[key].last_seen > 10000:
                 del TheGrid.AllPlayers[key]
                 print('deleted')
+                break
+
 
 
 
