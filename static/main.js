@@ -132,6 +132,10 @@ window.onload = function() {
         socket.emit("message", "I am connected");
     });
 
+    socket.on("probe", function() {
+        socket.emit("live", fizzyText.username);
+    });
+
     socket.on("clear", function() {
         while (scene.getObjectByName("trail") !== undefined) {
             let selectedObject = scene.getObjectByName("trail");
@@ -376,7 +380,7 @@ window.onload = function() {
     // Window close event
     window.onunload = function() {
         if (window.gameBegin) {
-            socket.emit("remove_user", fizzyText.username);
+            // socket.emit("remove_user", fizzyText.username);
             GRID.sleep(1000);
         }
     }
