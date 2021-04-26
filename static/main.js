@@ -6,9 +6,9 @@ import * as GRID from "./methods.js"
 let socket = io("http://" + window.location.hostname + ":" + window.location.port);
 
 function isTouchDevice() {
-  return (('ontouchstart' in window) ||
-     (navigator.maxTouchPoints > 0) ||
-     (navigator.msMaxTouchPoints > 0));
+    return (('ontouchstart' in window) ||
+        (navigator.maxTouchPoints > 0) ||
+        (navigator.msMaxTouchPoints > 0));
 }
 
 
@@ -67,15 +67,21 @@ window.onload = function() {
             } else {
                 if (isTouchDevice()) {
                     document.getElementsByClassName("controls")[0].innerHTML =
-                        "<div class=\"buttonleft\" style=\"float: left;\">\n" +
-                        "                <img src=\"left.png\" alt=\"Left\" width=\"100%\" height=\"100%\">\n" +
+                        "<div class=\"buttonleft\">\n" +
+                        "                <img src=\"icons/left1.svg\" alt=\"Left\" width=\"100%\" height=\"100%\">\n" +
                         "            </div>\n" +
-                        "            <div class=\"buttonright\" style=\"float: right;\">\n" +
-                        "                <img src=\"right.png\" alt=\"Right\" width=\"100%\" height=\"100%\">\n" +
+                        "            <div class=\"buttonright\">\n" +
+                        "                <img src=\"icons/right1.svg\" alt=\"Right\" width=\"100%\" height=\"100%\">\n" +
                         "            </div>";
+
+                    document.getElementsByClassName("boost")[0].innerHTML =
+                        "<div class=\"buttonboost\">\n" +
+                        "                <img src=\"icons/boost1.svg\" alt=\"Boost\" width=\"100%\" height=\"100%\">\n" +
+                        "            </div>\n";
 
                     let left = document.getElementsByClassName("buttonleft")[0];
                     let right = document.getElementsByClassName("buttonright")[0];
+                    let boost = document.getElementsByClassName("buttonboost")[0];
 
                     // Mouse events (for mobile)
                     left.addEventListener("touchstart", process_touchstart_l, false);
@@ -83,6 +89,8 @@ window.onload = function() {
 
                     right.addEventListener("touchstart", process_touchstart_r, false);
                     right.addEventListener("touchend", process_touchend_r, false);
+
+                    boost.addEventListener("touchstart", process_touchstart_b, false);
 
                     // touchstart handler
                     function process_touchstart_l(ev) {
@@ -103,6 +111,11 @@ window.onload = function() {
                     function process_touchend_r(ev) {
                         ev.preventDefault();
                         socket.emit("keyup", {"user": fizzyText.username, "key": 68});
+                    }
+
+                    function process_touchstart_b(ev) {
+                        ev.preventDefault();
+                        socket.emit("keydown", {"user": fizzyText.username, "key": 16});
                     }
                 }
                 window.gameBegin = true;
@@ -130,10 +143,6 @@ window.onload = function() {
 
     socket.on("connect", function() {
         socket.emit("message", "I am connected");
-    });
-
-    socket.on("probe", function() {
-        socket.emit("live", fizzyText.username);
     });
 
     socket.on("clear", function() {
@@ -380,7 +389,7 @@ window.onload = function() {
     // Window close event
     window.onunload = function() {
         if (window.gameBegin) {
-            // socket.emit("remove_user", fizzyText.username);
+            socket.emit("remove_user", fizzyText.username);
             GRID.sleep(1000);
         }
     }

@@ -40,18 +40,24 @@
                 display: inline-block;
                 z-index: 1;
             }
+            .boost {
+                position: absolute;
+                bottom: 17%;
+                right: 10%;
+                width: 8%;
+            }
             .controls {
                 position: absolute;
-                bottom: 15%;
-                left: 15%;
-
-                height: 30%;
+                bottom: 17%;
+                left: 10%;
+                height: 20%;
                 width: 30%;
             }
             .controls > div {
-                width: 30%;
                 display: inline-block;
                 z-index: 1;
+                height: 100%;
+                width: 40%; 
             }
             .controls > div > img {
                 opacity: 1;
@@ -69,6 +75,7 @@
         <script type="text/javascript" src="app_type.js"></script>
 
         <div class="controls"></div>
+        <div class="boost"></div>
 
         <div class="score">
             <div style="float: left; margin-right: 10px;">Score </div>
