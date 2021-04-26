@@ -34,82 +34,92 @@ window.onload = function() {
     const MAX_POINTS = 30000;
     let lastBufferIndex = 0, cameraIsNull = true;
 
+    let enterGame = function(username, key) {
+        // create an AudioListener and add it to the camera
+        const listener = new THREE.AudioListener();
+        camera.add( listener );
 
-    const FizzyText = function () {
+        // create a global audio source
+        const sound = new THREE.Audio( listener );
+
+        // load a sound and set it as the Audio object's buffer
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load( 'sounds/tron_legacy.mp3', function( buffer ) {
+            sound.setBuffer( buffer );
+            sound.setLoop( true );
+            sound.setVolume( 0.5 );
+            sound.play();
+        });
+
+        this.username = this.username.toLowerCase();
+        let res = httpGet("/check/" + this.username);
+        if (res["status"] === "true" || this.username.length >= 30 || res["error"] === "true") {
+            if (this.error === "") {
+                this.error = "This username is already taken or contains Non-English letters"
+                let e = gui.add(fizzyText, "error").name("Error");
+                e.domElement.style.pointerEvents = "none";
+            }
+        } else {
+            if (isTouchDevice()) {
+                document.getElementsByClassName("controls")[0].innerHTML =
+                    "<div class=\"buttonleft\" style=\"float: left;\">\n" +
+                    "                <img src=\"left.png\" alt=\"Left\" width=\"100%\" height=\"100%\">\n" +
+                    "            </div>\n" +
+                    "            <div class=\"buttonright\" style=\"float: right;\">\n" +
+                    "                <img src=\"right.png\" alt=\"Right\" width=\"100%\" height=\"100%\">\n" +
+                    "            </div>";
+
+                let left = document.getElementsByClassName("buttonleft")[0];
+                let right = document.getElementsByClassName("buttonright")[0];
+
+                // Mouse events (for mobile)
+                left.addEventListener("touchstart", process_touchstart_l, false);
+                left.addEventListener("touchend", process_touchend_l, false);
+
+                right.addEventListener("touchstart", process_touchstart_r, false);
+                right.addEventListener("touchend", process_touchend_r, false);
+
+                // touchstart handler
+                function process_touchstart_l(ev) {
+                    ev.preventDefault();
+                    socket.emit("keydown", {"user": fizzyText.username, "key": 65});
+                }
+
+                function process_touchend_l(ev) {
+                    ev.preventDefault();
+                    socket.emit("keyup", {"user": fizzyText.username, "key": 65});
+                }
+
+                function process_touchstart_r(ev) {
+                    ev.preventDefault();
+                    socket.emit("keydown", {"user": fizzyText.username, "key": 68});
+                }
+
+                function process_touchend_r(ev) {
+                    ev.preventDefault();
+                    socket.emit("keyup", {"user": fizzyText.username, "key": 68});
+                }
+            }
+            window.gameBegin = true;
+            socket.emit("add_user", fizzyText.username, isTouchDevice());
+            GameLoop();
+            gui.destroy();
+        }
+    }
+
+    const FizzyText = function() {
         this.username = GRID.generateUsername(6);
         this.error = "";
 
-        this.submitName = function () {
-            // create an AudioListener and add it to the camera
-            const listener = new THREE.AudioListener();
-            camera.add( listener );
+        this.submitName = function() {
+            enterGame(this.username, -1);
+        };
 
-            // create a global audio source
-            const sound = new THREE.Audio( listener );
-
-            // load a sound and set it as the Audio object's buffer
-            const audioLoader = new THREE.AudioLoader();
-            audioLoader.load( 'sounds/tron_legacy.mp3', function( buffer ) {
-                sound.setBuffer( buffer );
-                sound.setLoop( true );
-                sound.setVolume( 0.5 );
-                sound.play();
-            });
-
-            this.username = this.username.toLowerCase();
-            let res = httpGet("/check/" + this.username);
-            if (res["status"] === "true" || this.username.length >= 30 || res["error"] === "true") {
-                if (this.error === "") {
-                    this.error = "This username is already taken or contains Non-English letters"
-                    let e = gui.add(fizzyText, "error").name("Error");
-                    e.domElement.style.pointerEvents = "none";
-                }
-            } else {
-                if (isTouchDevice()) {
-                    document.getElementsByClassName("controls")[0].innerHTML =
-                        "<div class=\"buttonleft\" style=\"float: left;\">\n" +
-                        "                <img src=\"left.png\" alt=\"Left\" width=\"100%\" height=\"100%\">\n" +
-                        "            </div>\n" +
-                        "            <div class=\"buttonright\" style=\"float: right;\">\n" +
-                        "                <img src=\"right.png\" alt=\"Right\" width=\"100%\" height=\"100%\">\n" +
-                        "            </div>";
-
-                    let left = document.getElementsByClassName("buttonleft")[0];
-                    let right = document.getElementsByClassName("buttonright")[0];
-
-                    // Mouse events (for mobile)
-                    left.addEventListener("touchstart", process_touchstart_l, false);
-                    left.addEventListener("touchend", process_touchend_l, false);
-
-                    right.addEventListener("touchstart", process_touchstart_r, false);
-                    right.addEventListener("touchend", process_touchend_r, false);
-
-                    // touchstart handler
-                    function process_touchstart_l(ev) {
-                        ev.preventDefault();
-                        socket.emit("keydown", {"user": fizzyText.username, "key": 65});
-                    }
-
-                    function process_touchend_l(ev) {
-                        ev.preventDefault();
-                        socket.emit("keyup", {"user": fizzyText.username, "key": 65});
-                    }
-
-                    function process_touchstart_r(ev) {
-                        ev.preventDefault();
-                        socket.emit("keydown", {"user": fizzyText.username, "key": 68});
-                    }
-
-                    function process_touchend_r(ev) {
-                        ev.preventDefault();
-                        socket.emit("keyup", {"user": fizzyText.username, "key": 68});
-                    }
-                }
-                window.gameBegin = true;
-                socket.emit("add_user", fizzyText.username, isTouchDevice());
-                GameLoop();
-                gui.destroy();
-            }
+        this.accountLogin = "";
+        this.accountPassword = "";
+        this.LoginToAccount = function() {
+            let key = 
+            enterGame();
         };
     };
 
@@ -124,9 +134,12 @@ window.onload = function() {
         width: 700
     });
 
-    gui.add(fizzyText, "username").name("Enter username");
+    gui.add(fizzyText, "username").name("Enter name");
     gui.add(fizzyText, "submitName").name("Enter game");
 
+    gui.add(fizzyText, "accountUsername").name("Enter username");
+    gui.add(fizzyText, "accountPassword").name("Enter password");
+    gui.add(fizzyText, "LoginToAccount").name("Login and play");
 
     socket.on("connect", function() {
         socket.emit("message", "I am connected");
