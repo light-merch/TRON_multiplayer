@@ -168,6 +168,9 @@ window.onload = function() {
         }
     });
 
+    socket.on("pingclient", function() {
+        socket.emit("pingserver", fizzyText.username);
+    });
 
     socket.on("update", function(msg) {
         if (!window.gameBegin || typeof window.bike === "undefined") {
@@ -389,7 +392,7 @@ window.onload = function() {
     // Window close event
     window.onunload = function() {
         if (window.gameBegin) {
-            socket.emit("remove_user", fizzyText.username);
+            // socket.emit("remove_user", fizzyText.username);
             GRID.sleep(1000);
         }
     }
