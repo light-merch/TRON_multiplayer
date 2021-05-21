@@ -58,6 +58,7 @@ class Point:
         return self.x * other.y - other.x * self.y
 
 
+# Player structure
 @dataclass
 class Player:
     x: float
@@ -82,6 +83,7 @@ class Player:
     last_collision_check = None
 
 
+# Main class for all game functions
 class Game:
     def __init__(self) -> None:
         self.AllPlayers = dict()
@@ -195,7 +197,8 @@ class Game:
     # Compute movements of all bikes in since last calculation
     def update(self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
-        for bike_key in self.AllPlayers.keys():
+        for bike_key in self.AllPlayers.keys():  # Iterate over all players
+            # Out of borders
             if abs(self.AllPlayers[bike_key].x) > 500 or abs(self.AllPlayers[bike_key].z) > 800:
                 self.AllPlayers[bike_key].dead = True
                 self.UsersNum -= 1
@@ -206,17 +209,23 @@ class Game:
                 continue
 
             if self.AllPlayers[bike_key].boost_time <= 0:
+                # Reset player speed to normal
                 self.AllPlayers[bike_key].speed = TheGrid.Speed
             else:
+                # Update boost time
                 self.AllPlayers[bike_key].boost_time -= (current_time - self.LastTime)
 
+            # Bike vertical rotation
             if self.AllPlayers[bike_key].max_turn_angle > 0:
+                # Right turn
                 self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.02,
                                                          self.AllPlayers[bike_key].max_turn_angle)
             else:
+                # Left turn
                 self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.02,
                                                          self.AllPlayers[bike_key].max_turn_angle)
 
+            # Update heading
             self.AllPlayers[bike_key].heading += (current_time - self.LastTime) * self.AllPlayers[
                 bike_key].rotation * 0.001
             speed = (current_time - self.LastTime) * self.AllPlayers[bike_key].speed
@@ -224,8 +233,10 @@ class Game:
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
 
-        if current_time - self.LastBoosters > (10 * 1000) and len(self.boosters) < 10 and self.UsersNum:
+        # Create boosters
+        if current_time - self.LastBoosters > (10000) and len(self.boosters) < 10 and self.UsersNum:
             for i in range(min(3, 10 - len(self.boosters))):
+                # Field sizes
                 rx = 500
                 ry = 800
                 self.boosters.append(Point3d(randint(-rx, rx), 1, randint(-ry, ry)))
@@ -236,6 +247,7 @@ class Game:
 
             socketio.emit('booster', json.dumps(converted))
             self.LastBoosters = current_time
+
         self.LastTime = current_time
 
 
@@ -336,13 +348,13 @@ def game_loop(name):
         # Convert to JSON
         converted = dict()
         for player in TheGrid.AllPlayers.items():
-            converted[player[0]] = {'x': player[1].x, 
-                                    'y': player[1].y, 
+            converted[player[0]] = {'x': player[1].x,
+                                    'y': player[1].y,
                                     'z': player[1].z,
-                                    'heading': player[1].heading, 
+                                    'heading': player[1].heading,
                                     'controls': player[1].toggle_controls_rotation,
-                                    'rotation': player[1].rotation, 
-                                    'status': player[1].dead, 
+                                    'rotation': player[1].rotation,
+                                    'status': player[1].dead,
                                     'boosters': player[1].booster,
                                     'score': player[1].score}
 

@@ -375,6 +375,10 @@ window.onload = function() {
     }
 
 
+    function update_locally() {
+
+    }
+
 
     // Main loop
     let GameLoop = function() {
@@ -382,7 +386,9 @@ window.onload = function() {
         stats.begin();
         controls.update();
 
-        renderer.render(scene, camera); 
+        update_locally()
+
+        renderer.render(scene, camera);
         stats.end();
     };
 
