@@ -12,6 +12,7 @@ from flask import Flask, send_from_directory, render_template
 
 from ip import ip_address, port
 
+
 async_mode = None
 app = Flask(__name__, static_url_path='')
 socketio = SocketIO(app, async_mode=async_mode)
@@ -195,7 +196,7 @@ class Game:
 
 
     # Compute movements of all bikes in since last calculation
-    def update(self):
+    def update  (self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():  # Iterate over all players
             # Out of borders
@@ -361,7 +362,7 @@ def game_loop(name):
         if len(TheGrid.AllPlayers) != 0:
             socketio.emit('update', json.dumps(converted))
 
-        time.sleep(0.01)
+        time.sleep(0.2)  # Default 0.01
 
 
 # Second parallel thread for collision checks (They are much less frequent)
