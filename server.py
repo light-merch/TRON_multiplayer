@@ -380,5 +380,6 @@ if __name__ == "__main__":
 
     y = Thread(target=collisions, args=(1,))
     y.start()
-
+    
+    print(f'Listening on http://{ip_address}:{port}')
     socketio.run(app, host=ip_address, port=port)
