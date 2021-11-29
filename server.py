@@ -257,7 +257,7 @@ def root():
     return render_template('main1.html')
 
 
-# Get files from server (etc. libs)
+# Get files from server (e.g. libs)
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
