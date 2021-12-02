@@ -15,9 +15,9 @@ Note that flask-socketio version should be at least 5.x
 
 ## Developers
 >
-> [Artushkov Pavel](https://github.com/pavtiger) - Project idea & coding
+> [Artushkov Pavel](https://github.com/pavtiger) - Project idea & game development
 >
-> [Proskuriakov Dima](https://github.com/justdprroz) - Authentication server & coding
+> [Proskuriakov Dima](https://github.com/justdprroz) - Authentication server & game development
 > 
 
 ## Special thanks to these people
