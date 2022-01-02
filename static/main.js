@@ -109,21 +109,25 @@ window.onload = function() {
                     function process_touchstart_l(ev) {
                         ev.preventDefault();
                         socket.emit("keydown", {"user": fizzyText.username, "key": 65});
+                        PlayerData[window.username].max_turn_angle = 0.7;
                     }
 
                     function process_touchend_l(ev) {
                         ev.preventDefault();
                         socket.emit("keyup", {"user": fizzyText.username, "key": 65});
+                        PlayerData[window.username].max_turn_angle = -0.0001;
                     }
 
                     function process_touchstart_r(ev) {
                         ev.preventDefault();
                         socket.emit("keydown", {"user": fizzyText.username, "key": 68});
+                        PlayerData[window.username].max_turn_angle = -0.7;
                     }
 
                     function process_touchend_r(ev) {
                         ev.preventDefault();
                         socket.emit("keyup", {"user": fizzyText.username, "key": 68});
+                        PlayerData[window.username].max_turn_angle = 0.0001;
                     }
 
                     function process_touchstart_b(ev) {
@@ -199,7 +203,7 @@ window.onload = function() {
             return;
         }
 
-        // GRID.updateCamera(camera, currentPlayer, true);
+        GRID.updateCamera(camera, currentPlayer, true);
 
         // Update user's bike
         window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
@@ -278,6 +282,13 @@ window.onload = function() {
     function onDocumentKeyDown(event) {
         if (window.gameBegin) {
             socket.emit("keydown", {"user": fizzyText.username, "key": event.which});
+            if (event.which === 68) {
+                PlayerData[fizzyText.username].max_turn_angle = 0.7;
+                console.log(PlayerData[fizzyText.username].max_turn_angle);
+            } else if (event.which === 65) {
+                PlayerData[fizzyText.username].max_turn_angle = -0.7;
+                console.log(PlayerData[fizzyText.username].max_turn_angle);
+            }
         }
     }
 
@@ -285,6 +296,11 @@ window.onload = function() {
     function onDocumentKeyUp(event) {
         if (window.gameBegin) {
             socket.emit("keyup", {"user": fizzyText.username, "key": event.which});
+            if (event.which === 68) {
+                PlayerData[fizzyText.username].max_turn_angle = -0.0001;
+            } else if (event.which === 65) {
+                PlayerData[fizzyText.username].max_turn_angle = 0.0001;
+            }
         }
     }
 
@@ -302,20 +318,26 @@ window.onload = function() {
 
         let current_time = Date.now();
         for (let bike_key in vehicles) {
-            if (PlayerData[bike_key].dead) {
-                continue;
+            if (PlayerData[bike_key].max_turn_angle > 0) {
+                // Right turn
+                vehicles[bike_key].rotation.z = Math.min(vehicles[bike_key].rotation.z + 0.02,
+                    PlayerData[bike_key].max_turn_angle)
+            } else {
+                // Left turn
+                vehicles[bike_key].rotation.z = Math.max(vehicles[bike_key].rotation.z - 0.02,
+                    PlayerData[bike_key].max_turn_angle)
             }
-
-            // vehicles[bike_key].rotation.y += (current_time - last_time) * vehicles[bike_key].rotation.z * 0.001
 
             if (PlayerData[bike_key].boost_time <= 0) {
                 // Reset player speed to normal
-                PlayerData[bike_key].speed = 0.03
+                PlayerData[bike_key].speed = Math.min(0.03, PlayerData[bike_key].speed + 0.1)
             } else {
                 // Update boost time
                 PlayerData[bike_key].boost_time -= (current_time - last_time);
             }
 
+            // Update heading
+            vehicles[bike_key].rotation.y += (current_time - last_time) * -vehicles[bike_key].rotation.z * 0.001
             let speed = (current_time - last_time) * PlayerData[bike_key].speed;
 
             vehicles[bike_key].position.x += speed * Math.sin(vehicles[bike_key].rotation.y);
@@ -335,7 +357,7 @@ window.onload = function() {
         stats.begin();
         controls.update();
 
-        update_locally();
+        // update_locally();
 
         renderer.render(scene, camera);
         stats.end();

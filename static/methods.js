@@ -70,13 +70,12 @@ function updateCamera(camera, data, json) {
         }
         if (Math.abs(angle) >= 0.0001) {
             if (angle > 0) {
-                angle = Math.min(angle, 0.04);
+                angle = Math.min(angle, 0.05);
             } else {
-                angle = Math.max(angle, -0.04);
+                angle = Math.max(angle, -0.05);
             }
             let x = [camera.position.x, window.bike.position.x];
             let y = [camera.position.z, window.bike.position.z];
-            console.log(camera.position);
             camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
             camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
 
@@ -93,6 +92,8 @@ function updateCamera(camera, data, json) {
 
 
 function updateTrail(data, scene, key, json) {
+    let trailQuality = 1;
+
     let allPlayers = {};
     if (!json) {
         allPlayers["heading"] = data[key].rotation.y;
@@ -129,7 +130,7 @@ function updateTrail(data, scene, key, json) {
         let dx = Math.abs(mainLastTrail[key][0].x - allPlayers["x"]);
         let dz = Math.abs(mainLastTrail[key][0].z - allPlayers["z"]);
 
-        if (dx * dx + dz * dz <= 10 && lastBufferIndex > 0) {
+        if (dx * dx + dz * dz <= trailQuality && lastBufferIndex > 0) {
             // Update just last poly of the trail
             lastBufferIndex = Math.max(lastBufferIndex - 18, 0);
         } else {
