@@ -262,7 +262,7 @@ def root():
     return render_template('main1.html')
 
 
-# Get files from server (etc. libs)
+# Get files from server (e.g. libs)
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
@@ -386,5 +386,6 @@ if __name__ == "__main__":
 
     y = Thread(target=collisions, args=(1,))
     y.start()
-
+    
+    print(f'Listening on http://{ip_address}:{port}')
     socketio.run(app, host=ip_address, port=port)
