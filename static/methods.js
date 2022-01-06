@@ -210,6 +210,7 @@ function init() {
     document.body.appendChild(renderer.domElement);
     let controls = new OrbitControls(camera, renderer.domElement);
     controls.enableKeys = false;
+    controls.enableZoom = false;
 
     window.addEventListener("resize", function () {
         let width = window.innerWidth;

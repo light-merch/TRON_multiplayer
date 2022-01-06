@@ -310,9 +310,7 @@ window.onload = function() {
 
 
     function update_locally() {
-        if (!window.gameBegin) {
-            return;
-        }
+        if (!window.gameBegin) return;
 
         let current_time = Date.now();
         for (let bike_key in vehicles) {
@@ -355,6 +353,7 @@ window.onload = function() {
         stats.begin();
         controls.update();
 
+        // This function if preserved for better times
         // update_locally();
 
         renderer.render(scene, camera);

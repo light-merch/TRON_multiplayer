@@ -95,7 +95,7 @@ class Game:
         self.boosters = list()
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
         self.LastBoosters = int(time.time() * 1000)
-        self.TurnSpeed = 0.006
+        self.TurnSpeed = 0.005
         self.TurnMultiplier = 0.2
         self.Speed = 0.07
         self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315, 0, 200, 110, 290, 340, 160, 70, 250, 225, 320]
