@@ -92,7 +92,7 @@ function updateCamera(camera, data, json) {
 
 
 function updateTrail(data, scene, key, json) {
-    let trailQuality = 1;
+    let trailQuality = 16;
 
     let allPlayers = {};
     if (!json) {
@@ -202,7 +202,7 @@ function initStats(Stats) {
 
 function init() {
     let scene = new THREE.Scene();
-    let camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
+    let camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 5000);
 
     let renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);

@@ -284,10 +284,8 @@ window.onload = function() {
             socket.emit("keydown", {"user": fizzyText.username, "key": event.which});
             if (event.which === 68) {
                 PlayerData[fizzyText.username].max_turn_angle = 0.7;
-                console.log(PlayerData[fizzyText.username].max_turn_angle);
             } else if (event.which === 65) {
                 PlayerData[fizzyText.username].max_turn_angle = -0.7;
-                console.log(PlayerData[fizzyText.username].max_turn_angle);
             }
         }
     }

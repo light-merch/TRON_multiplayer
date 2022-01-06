@@ -81,6 +81,8 @@ class Player:
     rotation: float = 0
     boost_time: int = 0
     toggle_controls_rotation: bool = True
+
+    reset: bool = True
     max_turn_angle: float = 0
     last_collision_check = None
 
@@ -217,18 +219,29 @@ class Game:
             else:
                 # Update boost time
                 self.AllPlayers[bike_key].boost_time -= (current_time - self.LastTime)
+                self.AllPlayers[bike_key].speed = min(TheGrid.Speed * 3, self.AllPlayers[bike_key].speed + 0.01)
 
             # Bike vertical rotation
-            if self.AllPlayers[bike_key].max_turn_angle > 0:
-                # Right turn
-                self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.02,
-                                                         self.AllPlayers[bike_key].max_turn_angle)
+            if self.AllPlayers[bike_key].reset:
+                # Reset to vertical state
+                if self.AllPlayers[bike_key].rotation > 0:
+                    self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.03,
+                                                             self.AllPlayers[bike_key].max_turn_angle)
+                else:
+                    self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.03,
+                                                             self.AllPlayers[bike_key].max_turn_angle)
             else:
-                # Left turn
-                self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.02,
-                                                         self.AllPlayers[bike_key].max_turn_angle)
+                # Slowly turn
+                if self.AllPlayers[bike_key].max_turn_angle > 0:
+                    # Right turn
+                    self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.02,
+                                                             self.AllPlayers[bike_key].max_turn_angle)
+                else:
+                    # Left turn
+                    self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.02,
+                                                             self.AllPlayers[bike_key].max_turn_angle)
 
-            # Update heading
+            # Update heading (heading is updated through bike.rotation)
             self.AllPlayers[bike_key].heading += (current_time - self.LastTime) * self.AllPlayers[
                 bike_key].rotation * self.TurnSpeed
             speed = (current_time - self.LastTime) * self.AllPlayers[bike_key].speed
@@ -282,10 +295,9 @@ def check(username):
 def up(data):
     username = data['user']
     try:
-        if data['key'] == 65:  # A
-            TheGrid.AllPlayers[username].max_turn_angle = -0.0001
-        elif data['key'] == 68: # D
-            TheGrid.AllPlayers[username].max_turn_angle = 0.0001
+        if data['key'] == 65 or data['key'] == 68:  # A or D
+            TheGrid.AllPlayers[username].max_turn_angle = 0
+            TheGrid.AllPlayers[username].reset = True
     except:
         pass
 
@@ -296,8 +308,10 @@ def down(data):
     try:
         if data['key'] == 65:  # A
             TheGrid.AllPlayers[username].max_turn_angle = 0.7
+            TheGrid.AllPlayers[username].reset = False
         elif data['key'] == 68:  # D
             TheGrid.AllPlayers[username].max_turn_angle = -0.7
+            TheGrid.AllPlayers[username].reset = False
         elif data['key'] == 16:  # Shift
             TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
             TheGrid.AllPlayers[username].boost_time = 2000 * TheGrid.AllPlayers[username].booster
@@ -305,8 +319,10 @@ def down(data):
         elif data['key'] == 67:  # C
             TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[
                 username].toggle_controls_rotation
-    except:
-        pass
+
+    except Exception as e:
+        print(e)
+
 
 
 @socketio.on('message')
