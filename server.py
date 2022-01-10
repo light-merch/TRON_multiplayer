@@ -4,6 +4,7 @@ import unicodedata as ud
 import json
 import math
 import time
+from datetime import datetime
 from random import randint
 
 import eventlet
@@ -188,7 +189,7 @@ class Game:
             for boosterInd in range(len(self.boosters)):
                 dx = self.boosters[boosterInd].x - self.AllPlayers[bike].x
                 dz = self.boosters[boosterInd].z - self.AllPlayers[bike].z
-                if math.sqrt(dx * dx + dz * dz) <= 5 and self.AllPlayers[bike].booster <= 5:
+                if math.sqrt(dx * dx + dz * dz) <= 8 and self.AllPlayers[bike].booster <= 8:
                     self.AllPlayers[bike].booster += 1
                     self.boosters.pop(boosterInd)
                     converted = []
@@ -272,7 +273,11 @@ class Game:
 # Main page
 @app.route('/')
 def root():
+<<<<<<< HEAD
     return render_template('main1.html')
+=======
+    return render_template('main.html')
+>>>>>>> a556c7b... Added fine loading screen
 
 
 # Get files from server (e.g. libs)
@@ -333,7 +338,7 @@ def handle_message(data):
 # When user chooses a name he submits his final name and we add him to the table
 @socketio.on('add_user')
 def add(username, mobile):
-    print("add_user")
+    print(datetime.now(), "add_user")
     if username not in TheGrid.AllPlayers.keys():
         if len(TheGrid.AllPlayers) == 1:
             TheGrid.player_reset()

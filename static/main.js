@@ -1,7 +1,7 @@
 import * as THREE from "./three.module.js";
 
 import * as GRID from "./methods.js"
-
+import {playMusic} from "./methods.js";
 
 let socket = io("http://" + window.location.hostname + ":" + window.location.port);
 
@@ -33,19 +33,16 @@ function makeStruct(names) {
 
 
 window.onload = function() {
-    let tmp = GRID.init();
-    let scene = tmp[0];
-    let renderer = tmp[1];
-    let camera = tmp[2];
-    let controls = tmp[3];
-    let boosters = []
-
     let allPlayers, vehicles = {}, last_time = Date.now();
     let PlayerData = {};
 
-    window.gameBegin = false;
-    window.names = {};
+    let scene, renderer, camera, controls, stats;
+    let boosters = []
 
+    let fizzyText, gui;
+
+    window.state = "title_screen";
+    window.names = {};
 
 
     const FizzyText = function () {
@@ -53,6 +50,7 @@ window.onload = function() {
         this.error = "";
 
         this.submitName = function () {
+<<<<<<< HEAD
             // create an AudioListener and add it to the camera
             const listener = new THREE.AudioListener();
             camera.add( listener );
@@ -69,6 +67,8 @@ window.onload = function() {
                 sound.play();
             });
 
+=======
+>>>>>>> a556c7b... Added fine loading screen
             this.username = this.username.toLowerCase();
             let res = httpGet("/check/" + this.username);
             if (res["status"] === "true" || this.username.length >= 30 || res["error"] === "true") {
@@ -80,17 +80,17 @@ window.onload = function() {
             } else {
                 if (isTouchDevice()) {
                     document.getElementsByClassName("controls")[0].innerHTML =
-                        "<div class=\"buttonleft\">\n" +
-                        "                <img src=\"icons/left1.svg\" alt=\"Left\" width=\"100%\" height=\"100%\">\n" +
-                        "            </div>\n" +
-                        "            <div class=\"buttonright\">\n" +
-                        "                <img src=\"icons/right1.svg\" alt=\"Right\" width=\"100%\" height=\"100%\">\n" +
-                        "            </div>";
+                        '<div class="buttonleft">\n' +
+                        '                <img src="icons/left1.svg" alt="Left" width="100%" height="100%">\n' +
+                        '            </div>\n' +
+                        '            <div class="buttonright\">\n' +
+                        '                <img src="icons/right1.svg" alt="Right" width="100%" height="100%">\n' +
+                        '            </div>';
 
                     document.getElementsByClassName("boost")[0].innerHTML =
-                        "<div class=\"buttonboost\">\n" +
-                        "                <img src=\"icons/boost1.svg\" alt=\"Boost\" width=\"100%\" height=\"100%\">\n" +
-                        "            </div>\n";
+                        '<div class="buttonboost">\n' +
+                        '                <img src="icons/boost1.svg" alt="Boost" width="100%" height="100%">\n' +
+                        '            </div>\n';
 
                     let left = document.getElementsByClassName("buttonleft")[0];
                     let right = document.getElementsByClassName("buttonright")[0];
@@ -135,7 +135,8 @@ window.onload = function() {
                         socket.emit("keydown", {"user": fizzyText.username, "key": 16});
                     }
                 }
-                window.gameBegin = true;
+                window.state = "game";
+                GRID.playMusic(camera);
 
                 let Item = makeStruct("player_name speed heading booster score" +
                     " dead trail_size rotation boost_time toggle_controls_rotation max_turn_angle last_collision_check");
@@ -148,20 +149,6 @@ window.onload = function() {
             }
         };
     };
-
-
-    let stats = GRID.initStats(Stats);
-
-    // Dat Gui controls setup
-    let fizzyText = new FizzyText();
-    let gui = new dat.GUI({
-        load: JSON,
-        preset: "Flow",
-        width: 700
-    });
-
-    gui.add(fizzyText, "username").name("Enter username");
-    gui.add(fizzyText, "submitName").name("Enter game");
 
 
     socket.on("connect", function() {
@@ -182,7 +169,7 @@ window.onload = function() {
 
     socket.on("booster", function(msg) {
         let b = JSON.parse(msg);
-        const geometry = new THREE.SphereGeometry( 2, 32, 32 );
+        const geometry = new THREE.SphereGeometry( 4, 32, 32 );
         const material = new THREE.MeshBasicMaterial( {color: 0xff00ff} );
         for (let i = 0; i < b.length; i++){
             boosters.push(new THREE.Mesh( geometry, material ));
@@ -193,7 +180,7 @@ window.onload = function() {
 
 
     socket.on("update", function(msg) {
-        if (!window.gameBegin || typeof window.bike === "undefined") {
+        if (window.state !== "game" || typeof window.bike === "undefined") {
             return;
         }
 
@@ -280,7 +267,34 @@ window.onload = function() {
     // Keys events
     document.addEventListener("keydown", onDocumentKeyDown, false);
     function onDocumentKeyDown(event) {
-        if (window.gameBegin) {
+        if (window.state === "title_screen") {
+            if (event.which === 13 || event.which === 32) {
+                // Pressed enter, init game
+
+                let tmp = GRID.init();
+                scene = tmp[0];
+                renderer = tmp[1];
+                camera = tmp[2];
+                controls = tmp[3];
+
+                stats = GRID.initStats(Stats);
+
+                // Dat Gui controls setup
+                fizzyText = new FizzyText();
+                gui = new dat.GUI({
+                    load: JSON,
+                    preset: "Flow",
+                    width: 700
+                });
+
+                gui.add(fizzyText, "username").name("Enter username");
+                gui.add(fizzyText, "submitName").name("Enter game");
+
+                window.state = "nickname_select";
+            }
+        } else if (window.state === "nickname_select") {
+            // Do nothing
+        } else if (window.state === "game") {
             socket.emit("keydown", {"user": fizzyText.username, "key": event.which});
             if (event.which === 68) {
                 PlayerData[fizzyText.username].max_turn_angle = 0.7;
@@ -292,7 +306,7 @@ window.onload = function() {
 
     document.addEventListener("keyup", onDocumentKeyUp, false);
     function onDocumentKeyUp(event) {
-        if (window.gameBegin) {
+        if (window.state === "game") {
             socket.emit("keyup", {"user": fizzyText.username, "key": event.which});
             if (event.which === 68) {
                 PlayerData[fizzyText.username].max_turn_angle = -0.0001;
@@ -310,7 +324,7 @@ window.onload = function() {
 
 
     function update_locally() {
-        if (!window.gameBegin) return;
+        if (window.state !== "game") return;
 
         let current_time = Date.now();
         for (let bike_key in vehicles) {
@@ -362,7 +376,7 @@ window.onload = function() {
 
     // Window close event
     window.onunload = function() {
-        if (window.gameBegin) {
+        if (window.state === "game") {
             socket.emit("remove_user", fizzyText.username);
             GRID.sleep(1000);
         }

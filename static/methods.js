@@ -10,7 +10,8 @@ let lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, cameraIsNull = true;  // C
 
 const MAX_POINTS = 30000;
 
-function httpGet(Url) {
+
+export function httpGet(Url) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", Url, false); // false for synchronous request
     xmlHttp.send(null);
@@ -18,7 +19,7 @@ function httpGet(Url) {
 }
 
 
-function appendPoint(trail_vertices, vector) {
+export function appendPoint(trail_vertices, vector) {
     trail_vertices[lastBufferIndex++] = vector.x;
     trail_vertices[lastBufferIndex++] = vector.y;
     trail_vertices[lastBufferIndex++] = vector.z;
@@ -27,13 +28,14 @@ function appendPoint(trail_vertices, vector) {
 }
 
 
-function resetTrailData(key) {
+export function resetTrailData(key) {
     trail_geometry[key] = undefined;
     trail_vertices[key] = undefined;
     lastBufferIndex = 0;
 }
 
-function updateCamera(camera, data, json) {
+
+export function updateCamera(camera, data, json) {
     let currentPlayer = {};
     if (!json) {
         currentPlayer["heading"] = data.rotation.y;
@@ -91,8 +93,8 @@ function updateCamera(camera, data, json) {
 }
 
 
-function updateTrail(data, scene, key, json) {
-    let trailQuality = 16;
+export function updateTrail(data, scene, key, json) {
+    let trailQuality = 8;
 
     let allPlayers = {};
     if (!json) {
@@ -164,7 +166,7 @@ function updateTrail(data, scene, key, json) {
 }
 
 
-function generateUsername(length) {
+export function generateUsername(length) {
     for (const name of ["flynn", "tron", "clu", "sam", "quorra", "rinzler"]) {
         if (httpGet("/check/" + name)["status"] === "false") {
             return name;
@@ -182,12 +184,12 @@ function generateUsername(length) {
 }
 
 
-function sleep(ms) {
+export function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 
-function initStats(Stats) {
+export function initStats(Stats) {
     var stats = new Stats();
     stats.setMode(0); // 0: fps, 1: ms
 
@@ -199,8 +201,44 @@ function initStats(Stats) {
     return stats;
 }
 
+export function playMusic(camera) {
+    // Create an AudioListener and add it to the camera
+    const listener = new THREE.AudioListener();
+    camera.add( listener );
 
-function init() {
+    // Create a global audio source
+    const sound = new THREE.Audio( listener );
+
+    // Load a sound and set it as the Audio object's buffer
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load( 'sounds/tron_legacy.mp3', function( buffer ) {
+        sound.setBuffer( buffer );
+        sound.setLoop( true );
+        sound.setVolume( 0.5 );
+        sound.play();
+    });
+}
+
+export function init() {
+    // Init HTML
+    let title_screen = document.getElementById("title_screen");
+    title_screen.remove(); // Removes the div with the 'title_screen' id
+
+    // Add booster icons & counter
+    document.getElementsByClassName("score")[0].innerHTML =
+        '<div style="float: left; margin-right: 10px;">Score </div>\n' +
+        '<div style="float: right;" id="scorenumber"></div>\n';
+
+    document.getElementsByClassName("boosters")[0].innerHTML =
+        '<div id="1" class="grey"></div>\n' +
+        '<div id="2" class="grey"></div>\n' +
+        '<div id="3" class="grey"></div>\n' +
+        '<div id="4" class="grey"></div>\n' +
+        '<div id="5" class="grey"></div>\n';
+
+    console.log("hello there");
+
+    // Proceed with Three.js
     let scene = new THREE.Scene();
     let camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 5000);
 
@@ -278,6 +316,3 @@ function init() {
 
     return [scene, renderer, camera, controls];
 }
-
-
-export { initStats, sleep, generateUsername, init, updateTrail, resetTrailData, updateCamera };
