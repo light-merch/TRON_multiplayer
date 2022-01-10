@@ -2,7 +2,6 @@ import * as THREE from "./three.module.js";
 
 import * as GRID from "./methods.js"
 
-
 let socket = io("http://" + window.location.hostname + ":" + window.location.port);
 
 function isTouchDevice() {
@@ -20,19 +19,29 @@ function httpGet(Url) {
 }
 
 
+function makeStruct(names) {
+    var names = names.split(' ');
+    var count = names.length;
+    function constructor() {
+        for (var i = 0; i < count; i++) {
+            this[names[i]] = arguments[i];
+        }
+    }
+    return constructor;
+}
+
+
 window.onload = function() {
-    let tmp = GRID.init();
-    let scene = tmp[0];
-    let renderer = tmp[1];
-    let camera = tmp[2];
-    let controls = tmp[3];
+    let allPlayers, vehicles = {}, last_time = Date.now();
+    let PlayerData = {};
+
+    let scene, renderer, camera, controls, stats;
     let boosters = []
 
-    let allPlayers, currentPlayer, vehicles = {}, lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, lastTrail = {}, mainLastTrail = {};
-    window.gameBegin = false;
+    let fizzyText, gui;
+
+    window.state = "title_screen";
     window.names = {};
-    const MAX_POINTS = 30000;
-    let lastBufferIndex = 0, cameraIsNull = true;
 
 
     const FizzyText = function () {
@@ -40,22 +49,6 @@ window.onload = function() {
         this.error = "";
 
         this.submitName = function () {
-            // create an AudioListener and add it to the camera
-            const listener = new THREE.AudioListener();
-            camera.add( listener );
-
-            // create a global audio source
-            const sound = new THREE.Audio( listener );
-
-            // load a sound and set it as the Audio object's buffer
-            const audioLoader = new THREE.AudioLoader();
-            audioLoader.load( 'sounds/tron_legacy.mp3', function( buffer ) {
-                sound.setBuffer( buffer );
-                sound.setLoop( true );
-                sound.setVolume( 0.5 );
-                sound.play();
-            });
-
             this.username = this.username.toLowerCase();
             let res = httpGet("/check/" + this.username);
             if (res["status"] === "true" || this.username.length >= 30 || res["error"] === "true") {
@@ -67,17 +60,17 @@ window.onload = function() {
             } else {
                 if (isTouchDevice()) {
                     document.getElementsByClassName("controls")[0].innerHTML =
-                        "<div class=\"buttonleft\">\n" +
-                        "                <img src=\"icons/left1.svg\" alt=\"Left\" width=\"100%\" height=\"100%\">\n" +
-                        "            </div>\n" +
-                        "            <div class=\"buttonright\">\n" +
-                        "                <img src=\"icons/right1.svg\" alt=\"Right\" width=\"100%\" height=\"100%\">\n" +
-                        "            </div>";
+                        '<div class="buttonleft">\n' +
+                        '                <img src="icons/left1.svg" alt="Left" width="100%" height="100%">\n' +
+                        '            </div>\n' +
+                        '            <div class="buttonright\">\n' +
+                        '                <img src="icons/right1.svg" alt="Right" width="100%" height="100%">\n' +
+                        '            </div>';
 
                     document.getElementsByClassName("boost")[0].innerHTML =
-                        "<div class=\"buttonboost\">\n" +
-                        "                <img src=\"icons/boost1.svg\" alt=\"Boost\" width=\"100%\" height=\"100%\">\n" +
-                        "            </div>\n";
+                        '<div class="buttonboost">\n' +
+                        '                <img src="icons/boost1.svg" alt="Boost" width="100%" height="100%">\n' +
+                        '            </div>\n';
 
                     let left = document.getElementsByClassName("buttonleft")[0];
                     let right = document.getElementsByClassName("buttonright")[0];
@@ -96,21 +89,25 @@ window.onload = function() {
                     function process_touchstart_l(ev) {
                         ev.preventDefault();
                         socket.emit("keydown", {"user": fizzyText.username, "key": 65});
+                        PlayerData[window.username].max_turn_angle = 0.7;
                     }
 
                     function process_touchend_l(ev) {
                         ev.preventDefault();
                         socket.emit("keyup", {"user": fizzyText.username, "key": 65});
+                        PlayerData[window.username].max_turn_angle = -0.0001;
                     }
 
                     function process_touchstart_r(ev) {
                         ev.preventDefault();
                         socket.emit("keydown", {"user": fizzyText.username, "key": 68});
+                        PlayerData[window.username].max_turn_angle = -0.7;
                     }
 
                     function process_touchend_r(ev) {
                         ev.preventDefault();
                         socket.emit("keyup", {"user": fizzyText.username, "key": 68});
+                        PlayerData[window.username].max_turn_angle = 0.0001;
                     }
 
                     function process_touchstart_b(ev) {
@@ -118,27 +115,20 @@ window.onload = function() {
                         socket.emit("keydown", {"user": fizzyText.username, "key": 16});
                     }
                 }
-                window.gameBegin = true;
+                window.state = "game";
+                GRID.playMusic(camera);
+
+                let Item = makeStruct("player_name speed heading booster score" +
+                    " dead trail_size rotation boost_time toggle_controls_rotation max_turn_angle last_collision_check");
+                PlayerData[this.username] = new Item("", 0, 0, 0, 0, false, 0, 0, 0, true, 0, undefined);
+                vehicles[this.username] = window.bike;
+
                 socket.emit("add_user", fizzyText.username, isTouchDevice());
                 GameLoop();
                 gui.destroy();
             }
         };
     };
-
-
-    let stats = GRID.initStats(Stats);
-
-    // Dat Gui controls setup
-    let fizzyText = new FizzyText();
-    let gui = new dat.GUI({
-        load: JSON,
-        preset: "Flow",
-        width: 700
-    });
-
-    gui.add(fizzyText, "username").name("Enter username");
-    gui.add(fizzyText, "submitName").name("Enter game");
 
 
     socket.on("connect", function() {
@@ -152,14 +142,14 @@ window.onload = function() {
         }
 
         for (let key in allPlayers) {
-            trail_geometry[key] = undefined;
+            GRID.resetTrailData(key);
         }
     });
 
 
     socket.on("booster", function(msg) {
         let b = JSON.parse(msg);
-        const geometry = new THREE.SphereGeometry( 2, 32, 32 );
+        const geometry = new THREE.SphereGeometry( 4, 32, 32 );
         const material = new THREE.MeshBasicMaterial( {color: 0xff00ff} );
         for (let i = 0; i < b.length; i++){
             boosters.push(new THREE.Mesh( geometry, material ));
@@ -169,56 +159,23 @@ window.onload = function() {
     });
 
     socket.on("pingclient", function() {
-        socket.emit("pingserver", fizzyText.username);
+        if (window.state === "game") {
+            socket.emit("pingserver", fizzyText.username);
+        }
     });
 
     socket.on("update", function(msg) {
-        if (!window.gameBegin || typeof window.bike === "undefined") {
+        if (window.state !== "game" || typeof window.bike === "undefined") {
             return;
         }
 
-        allPlayers = JSON.parse(msg);
-        currentPlayer = allPlayers[fizzyText.username];
+        allPlayers = JSON.parse(msg);  // Parsed data from server
+        let currentPlayer = allPlayers[fizzyText.username];
         if (currentPlayer === undefined) {
             return;
         }
 
-        if (cameraIsNull) {
-            cameraIsNull = false;
-
-            camera.position.y = 10;
-            camera.position.x = currentPlayer["x"] + 15 * Math.sin(currentPlayer["heading"] - Math.PI);
-            camera.position.z = currentPlayer["z"] + 15 * Math.cos(currentPlayer["heading"] - Math.PI);
-
-            lastX = currentPlayer["x"];
-            lastY = currentPlayer["y"];
-            lastZ = currentPlayer["z"];
-            lastHeading = currentPlayer["heading"];
-
-            camera.lookAt(window.bike);
-        } else {
-            camera.position.x += currentPlayer["x"] - lastX;
-            camera.position.y += currentPlayer["y"] - lastY;
-            camera.position.z += currentPlayer["z"] - lastZ;
-
-            let angle = lastHeading - currentPlayer["heading"];
-            if (angle >= 360) {
-                lastHeading += Math.trunc(angle / 360) * 360;
-            }
-            if (Math.abs(angle) >= 0.0001 && currentPlayer["controls"]) {
-                if (angle > 0) {
-                    angle = Math.min(angle, 0.04);
-                } else {
-                    angle = Math.max(angle, -0.04);
-                }
-                let x = [camera.position.x, window.bike.position.x];
-                let y = [camera.position.z, window.bike.position.z];
-                camera.position.x = window.bike.position.x + (x[0] - x[1]) * Math.cos(angle) + (y[0] - y[1]) * (-Math.sin(angle));
-                camera.position.z = window.bike.position.z + (x[0] - x[1]) * Math.sin(angle) + (y[0] - y[1]) * Math.cos(angle);
-
-                lastHeading -= angle;
-            }
-        }
+        GRID.updateCamera(camera, currentPlayer, true);
 
         // Update user's bike
         window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
@@ -228,7 +185,7 @@ window.onload = function() {
 
         // Update boosters counter
         let boostersgui = document.getElementsByClassName("boosters")[0].getElementsByTagName("div");
-        for(var i = 0; i < 5; i++){
+        for (let i = 0; i < 5; i++) {
             let boost = boostersgui[i];
             if (i < currentPlayer["boosters"]){
                 boost.setAttribute("class", "purple")
@@ -244,67 +201,19 @@ window.onload = function() {
         // Display all players
         for (let key in allPlayers) {
             // Trail
-            if (trail_geometry[key] === undefined) {
-                // Init trail
-                trail_geometry[key] = new THREE.BufferGeometry();
-                trail_vertices[key] = new Float32Array(MAX_POINTS * 3);
-                lastTrail[key] = [new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]),
-                    new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"] + 1, allPlayers[key]["z"])];
-                mainLastTrail[key] = Object.assign({}, lastTrail[key]);
-
-
-                // Trail init
-                trail_geometry[key].setAttribute( "position", new THREE.BufferAttribute( trail_vertices[key], 3 ) );
-                let trail_material = new THREE.MeshBasicMaterial( { color: 0x0fbef2, wireframe: false } );
-                let mesh = new THREE.Mesh( trail_geometry[key], trail_material );
-                mesh.name = "trail";
-                scene.add(mesh);
-                mesh.traverse( function( node ) {
-                    if( node.material ) {
-                        node.material.side = THREE.DoubleSide;
-                    }
-                });
-                mesh.frustumCulled = false;
-            } else {
-                let dx = Math.abs(mainLastTrail[key][0].x - allPlayers[key]["x"]);
-                let dz = Math.abs(mainLastTrail[key][0].z - allPlayers[key]["z"]);
-
-
-                if (dx * dx + dz * dz <= 10 && lastBufferIndex > 0) {
-                    // Update just last poly of the trail
-                    lastBufferIndex = Math.max(lastBufferIndex - 18, 0);
-                } else {
-                    if (lastBufferIndex !== 0) {
-                        mainLastTrail[key] = Object.assign({}, lastTrail[key]);
-                    }
-                }
-
-                trail_geometry[key].setAttribute("position", new THREE.BufferAttribute(trail_vertices[key], 3));
-
-                // Update trail by creating new poly
-                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][0]);
-                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][1]);
-                trail_vertices[key] = appendPoint(trail_vertices[key], new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]));
-
-                let a = (Math.PI / 2) - (allPlayers[key]["heading"]);
-                let top_bike = new THREE.Vector3(allPlayers[key]["x"] + Math.sin(allPlayers[key]["rotation"] * Math.sin(a)),
-                    allPlayers[key]["y"] + Math.cos(allPlayers[key]["rotation"]), // Height
-                    allPlayers[key]["z"] - Math.sin(allPlayers[key]["rotation"]) * Math.cos(a))
-
-                trail_vertices[key] = appendPoint(trail_vertices[key], top_bike);
-                trail_vertices[key] = appendPoint(trail_vertices[key], allPlayers[key]);
-                trail_vertices[key] = appendPoint(trail_vertices[key], mainLastTrail[key][1]);
-
-                lastTrail[key][1] = top_bike;
-                lastTrail[key][0] = new THREE.Vector3(allPlayers[key]["x"], allPlayers[key]["y"], allPlayers[key]["z"]);
-            }
+            scene = GRID.updateTrail(allPlayers, scene, key, true);
 
             if (key !== fizzyText.username) {
                 if (vehicles[key] === undefined) {
+                    // New player
                     let copy = window.template.clone();
                     scene.add(copy);
                     vehicles[key] = copy;
                     window.key = key;
+
+                    let Item = makeStruct("player_name speed heading booster score" +
+                        " dead trail_size rotation boost_time toggle_controls_rotation max_turn_angle last_collision_check");
+                    PlayerData[key] = new Item("", 0, 0, 0, 0, false, 0, 0, 0, true, 0, undefined);
 
                     // Display usernames
                     const geometry = new THREE.TextGeometry(window.key, {
@@ -337,25 +246,58 @@ window.onload = function() {
                 }
             }
         }
-
-        lastX = currentPlayer["x"];
-        lastY = currentPlayer["y"];
-        lastZ = currentPlayer["z"];
     });
 
 
     // Keys events
     document.addEventListener("keydown", onDocumentKeyDown, false);
     function onDocumentKeyDown(event) {
-        if (window.gameBegin) {
+        if (window.state === "title_screen") {
+            if (event.which === 13 || event.which === 32) {
+                // Pressed enter, init game
+
+                let tmp = GRID.init();
+                scene = tmp[0];
+                renderer = tmp[1];
+                camera = tmp[2];
+                controls = tmp[3];
+
+                stats = GRID.initStats(Stats);
+
+                // Dat Gui controls setup
+                fizzyText = new FizzyText();
+                gui = new dat.GUI({
+                    load: JSON,
+                    preset: "Flow",
+                    width: 700
+                });
+
+                gui.add(fizzyText, "username").name("Enter username");
+                gui.add(fizzyText, "submitName").name("Enter game");
+
+                window.state = "nickname_select";
+            }
+        } else if (window.state === "nickname_select") {
+            // Do nothing
+        } else if (window.state === "game") {
             socket.emit("keydown", {"user": fizzyText.username, "key": event.which});
+            if (event.which === 68) {
+                PlayerData[fizzyText.username].max_turn_angle = 0.7;
+            } else if (event.which === 65) {
+                PlayerData[fizzyText.username].max_turn_angle = -0.7;
+            }
         }
     }
 
     document.addEventListener("keyup", onDocumentKeyUp, false);
     function onDocumentKeyUp(event) {
-        if (window.gameBegin) {
+        if (window.state === "game") {
             socket.emit("keyup", {"user": fizzyText.username, "key": event.which});
+            if (event.which === 68) {
+                PlayerData[fizzyText.username].max_turn_angle = -0.0001;
+            } else if (event.which === 65) {
+                PlayerData[fizzyText.username].max_turn_angle = 0.0001;
+            }
         }
     }
 
@@ -365,18 +307,43 @@ window.onload = function() {
         window.font = font;
     });
 
-    let trail_geometry = {};
-    let trail_vertices = {};
 
+    function update_locally() {
+        if (window.state !== "game") return;
 
-    function appendPoint(trail_vertices, vector) {
-        trail_vertices[lastBufferIndex ++] = vector.x;
-        trail_vertices[lastBufferIndex ++] = vector.y;
-        trail_vertices[lastBufferIndex ++] = vector.z;
+        let current_time = Date.now();
+        for (let bike_key in vehicles) {
+            if (PlayerData[bike_key].max_turn_angle > 0) {
+                // Right turn
+                vehicles[bike_key].rotation.z = Math.min(vehicles[bike_key].rotation.z + 0.02,
+                    PlayerData[bike_key].max_turn_angle)
+            } else {
+                // Left turn
+                vehicles[bike_key].rotation.z = Math.max(vehicles[bike_key].rotation.z - 0.02,
+                    PlayerData[bike_key].max_turn_angle)
+            }
 
-        return trail_vertices
+            if (PlayerData[bike_key].boost_time <= 0) {
+                // Reset player speed to normal
+                PlayerData[bike_key].speed = Math.min(0.03, PlayerData[bike_key].speed + 0.1)
+            } else {
+                // Update boost time
+                PlayerData[bike_key].boost_time -= (current_time - last_time);
+            }
+
+            // Update heading
+            vehicles[bike_key].rotation.y += (current_time - last_time) * -vehicles[bike_key].rotation.z * 0.001
+            let speed = (current_time - last_time) * PlayerData[bike_key].speed;
+
+            vehicles[bike_key].position.x += speed * Math.sin(vehicles[bike_key].rotation.y);
+            vehicles[bike_key].position.z += speed * Math.cos(vehicles[bike_key].rotation.y);
+
+            scene = GRID.updateTrail(vehicles, scene, bike_key, false);
+            camera = GRID.updateCamera(camera, vehicles[bike_key], false);
+            camera.lookAt(window.bike.position.x, window.bike.position.y, window.bike.position.z);
+        }
+        last_time = current_time;
     }
-
 
 
     // Main loop
@@ -385,14 +352,17 @@ window.onload = function() {
         stats.begin();
         controls.update();
 
-        renderer.render(scene, camera); 
+        // This function is preserved for better times
+        // update_locally();
+
+        renderer.render(scene, camera);
         stats.end();
     };
 
     // Window close event
     window.onunload = function() {
-        if (window.gameBegin) {
-            // socket.emit("remove_user", fizzyText.username);
+        if (window.state === "game") {
+            socket.emit("remove_user", fizzyText.username);
             GRID.sleep(1000);
         }
     }

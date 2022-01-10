@@ -4,6 +4,7 @@ import unicodedata as ud
 import json
 import math
 import time
+from datetime import datetime
 from random import randint
 
 import eventlet
@@ -11,6 +12,7 @@ from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, render_template
 
 from ip import ip_address, port
+
 
 async_mode = None
 app = Flask(__name__, static_url_path='')
@@ -58,6 +60,7 @@ class Point:
         return self.x * other.y - other.x * self.y
 
 
+# Player structure
 @dataclass
 class Player:
     x: float
@@ -67,6 +70,7 @@ class Player:
     player_name: str
     speed: float
     heading: float
+    last_heading: float
     x_trail: list
     y_trail: list
     z_trail: list
@@ -78,11 +82,14 @@ class Player:
     rotation: float = 0
     boost_time: int = 0
     toggle_controls_rotation: bool = True
+
+    reset: bool = True
     max_turn_angle: float = 0
     last_collision_check = None
     last_seen = None
 
 
+# Main class for all game functions
 class Game:
     def __init__(self) -> None:
         self.AllPlayers = dict()
@@ -90,8 +97,9 @@ class Game:
         self.boosters = list()
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
         self.LastBoosters = int(time.time() * 1000)
-        self.TurnSpeed = 0.05
-        self.Speed = 0.03
+        self.TurnSpeed = 0.005
+        self.TurnMultiplier = 0.2
+        self.Speed = 0.07
         self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315, 0, 200, 110, 290, 340, 160, 70, 250, 225, 320]
         self.UsersNum = 0
 
@@ -182,7 +190,7 @@ class Game:
             for boosterInd in range(len(self.boosters)):
                 dx = self.boosters[boosterInd].x - self.AllPlayers[bike].x
                 dz = self.boosters[boosterInd].z - self.AllPlayers[bike].z
-                if math.sqrt(dx * dx + dz * dz) <= 5 and self.AllPlayers[bike].booster <= 5:
+                if math.sqrt(dx * dx + dz * dz) <= 8 and self.AllPlayers[bike].booster <= 8:
                     self.AllPlayers[bike].booster += 1
                     self.boosters.pop(boosterInd)
                     converted = []
@@ -193,10 +201,11 @@ class Game:
 
 
 
-    # Compute movements of all bikes in since last calculation
+    # Compute movements of all bikes since last calculation
     def update(self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
-        for bike_key in self.AllPlayers.keys():
+        for bike_key in self.AllPlayers.keys():  # Iterate over all players
+            # Out of borders
             if abs(self.AllPlayers[bike_key].x) > 500 or abs(self.AllPlayers[bike_key].z) > 800:
                 self.AllPlayers[bike_key].dead = True
                 self.UsersNum -= 1
@@ -207,26 +216,47 @@ class Game:
                 continue
 
             if self.AllPlayers[bike_key].boost_time <= 0:
-                self.AllPlayers[bike_key].speed = TheGrid.Speed
+                # Reset player speed to normal
+                self.AllPlayers[bike_key].speed = min(TheGrid.Speed, self.AllPlayers[bike_key].speed + 0.01)
             else:
+                # Update boost time
                 self.AllPlayers[bike_key].boost_time -= (current_time - self.LastTime)
+                self.AllPlayers[bike_key].speed = min(TheGrid.Speed * 3, self.AllPlayers[bike_key].speed + 0.01)
 
-            if self.AllPlayers[bike_key].max_turn_angle > 0:
-                self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.02,
-                                                         self.AllPlayers[bike_key].max_turn_angle)
+            # Bike vertical rotation
+            if self.AllPlayers[bike_key].reset:
+                # Reset to vertical state
+                if self.AllPlayers[bike_key].rotation > 0:
+                    self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.03,
+                                                             self.AllPlayers[bike_key].max_turn_angle)
+                else:
+                    self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.03,
+                                                             self.AllPlayers[bike_key].max_turn_angle)
             else:
-                self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.02,
-                                                         self.AllPlayers[bike_key].max_turn_angle)
+                # Slowly turn
+                if self.AllPlayers[bike_key].max_turn_angle > 0:
+                    # Right turn
+                    self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.02,
+                                                             self.AllPlayers[bike_key].max_turn_angle)
+                else:
+                    # Left turn
+                    self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.02,
+                                                             self.AllPlayers[bike_key].max_turn_angle)
 
+            # Update heading (heading is updated through bike.rotation)
             self.AllPlayers[bike_key].heading += (current_time - self.LastTime) * self.AllPlayers[
-                bike_key].rotation * 0.001
+                bike_key].rotation * self.TurnSpeed
             speed = (current_time - self.LastTime) * self.AllPlayers[bike_key].speed
+            self.AllPlayers[bike_key].speed = max(0, self.AllPlayers[bike_key].speed - abs(self.AllPlayers[bike_key].heading - self.AllPlayers[bike_key].last_heading) * self.TurnMultiplier)
 
             self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
             self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
+            self.AllPlayers[bike_key].last_heading = self.AllPlayers[bike_key].heading
 
-        if current_time - self.LastBoosters > (10 * 1000) and len(self.boosters) < 10 and self.UsersNum:
+        # Create boosters
+        if current_time - self.LastBoosters > (10000) and len(self.boosters) < 10 and self.UsersNum:
             for i in range(min(3, 10 - len(self.boosters))):
+                # Field sizes
                 rx = 500
                 ry = 800
                 self.boosters.append(Point3d(randint(-rx, rx), 1, randint(-ry, ry)))
@@ -237,16 +267,17 @@ class Game:
 
             socketio.emit('booster', json.dumps(converted))
             self.LastBoosters = current_time
+
         self.LastTime = current_time
 
 
 # Main page
 @app.route('/')
 def root():
-    return render_template('main1.html')
+    return render_template('main.html')
 
 
-# Get files from server (etc. libs)
+# Get files from server (e.g. libs)
 @app.route('/js/<path:path>')
 def send_js(path):
     return send_from_directory('js', path)
@@ -264,7 +295,6 @@ def check(username):
 
 @socketio.on('pingserver')
 def ping(name):
-    print(name)
     TheGrid.AllPlayers[name].last_seen = int(time.time() * 1000)
 
 
@@ -272,10 +302,9 @@ def ping(name):
 def up(data):
     username = data['user']
     try:
-        if data['key'] == 65:  # A
-            TheGrid.AllPlayers[username].max_turn_angle = -0.0001
-        elif data['key'] == 68: # D
-            TheGrid.AllPlayers[username].max_turn_angle = 0.0001
+        if data['key'] == 65 or data['key'] == 68:  # A or D
+            TheGrid.AllPlayers[username].max_turn_angle = 0
+            TheGrid.AllPlayers[username].reset = True
     except:
         pass
 
@@ -286,8 +315,10 @@ def down(data):
     try:
         if data['key'] == 65:  # A
             TheGrid.AllPlayers[username].max_turn_angle = 0.7
+            TheGrid.AllPlayers[username].reset = False
         elif data['key'] == 68:  # D
             TheGrid.AllPlayers[username].max_turn_angle = -0.7
+            TheGrid.AllPlayers[username].reset = False
         elif data['key'] == 16:  # Shift
             TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
             TheGrid.AllPlayers[username].boost_time = 2000 * TheGrid.AllPlayers[username].booster
@@ -295,8 +326,10 @@ def down(data):
         elif data['key'] == 67:  # C
             TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[
                 username].toggle_controls_rotation
-    except:
-        pass
+
+    except Exception as e:
+        print(e)
+
 
 
 @socketio.on('message')
@@ -307,7 +340,7 @@ def handle_message(data):
 # When user chooses a name he submits his final name and we add him to the table
 @socketio.on('add_user')
 def add(username, mobile):
-    print(mobile)
+    print(datetime.now(), "add_user")
     if username not in TheGrid.AllPlayers.keys():
         if len(TheGrid.AllPlayers) == 1:
             TheGrid.player_reset()
@@ -317,8 +350,9 @@ def add(username, mobile):
         a = Point(SPAWN_R * math.cos(angle), SPAWN_R * math.sin(angle))
         b = Point(0, 800)
 
+        heading = math.atan2(a.cp(b), a.dp(b)) - math.pi
         TheGrid.AllPlayers[username] = Player(SPAWN_R * math.cos(angle), 0, SPAWN_R * math.sin(angle),
-                                              username, TheGrid.Speed, math.atan2(a.cp(b), a.dp(b)) - math.pi, [], [], [])
+                                              username, TheGrid.Speed, heading, heading, [], [], [])
         TheGrid.UsersNum += 1
         converted = []
         for booster in TheGrid.boosters:
@@ -343,20 +377,20 @@ def game_loop(name):
         # Convert to JSON
         converted = dict()
         for player in TheGrid.AllPlayers.items():
-            converted[player[0]] = {'x': player[1].x, 
-                                    'y': player[1].y, 
+            converted[player[0]] = {'x': player[1].x,
+                                    'y': player[1].y,
                                     'z': player[1].z,
-                                    'heading': player[1].heading, 
+                                    'heading': player[1].heading,
                                     'controls': player[1].toggle_controls_rotation,
-                                    'rotation': player[1].rotation, 
-                                    'status': player[1].dead, 
+                                    'rotation': player[1].rotation,
+                                    'status': player[1].dead,
                                     'boosters': player[1].booster,
                                     'score': player[1].score}
 
         if len(TheGrid.AllPlayers) != 0:
             socketio.emit('update', json.dumps(converted))
 
-        time.sleep(0.01)
+        time.sleep(0.01)  # Default 0.01
 
 
 # Second parallel thread for collision checks (They are much less frequent)
@@ -369,10 +403,11 @@ def collisions(name):
 def send():
     while True:
         for user in TheGrid.AllPlayers:
-            print(user, TheGrid.AllPlayers[user].last_seen)
             if TheGrid.AllPlayers[user].last_seen != None and int(time.time() * 1000) - TheGrid.AllPlayers[user].last_seen >= 20000:
                 del TheGrid.AllPlayers[user]
+                print(f"User {user} deleted due to inactivity")
                 break
+
         socketio.emit('pingclient')
         time.sleep(5)
 
@@ -389,5 +424,6 @@ if __name__ == "__main__":
 
     z = Thread(target=send)
     z.start()
-
+    
+    print(f'Listening on http://{ip_address}:{port}')
     socketio.run(app, host=ip_address, port=port)
