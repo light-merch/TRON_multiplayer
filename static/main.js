@@ -144,6 +144,7 @@ window.onload = function() {
         for (let key in allPlayers) {
             GRID.resetTrailData(key);
         }
+        window.cameraIsNull = true;
     });
 
 

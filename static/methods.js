@@ -6,13 +6,14 @@ import { MTLLoader } from "./MTLLoader.js";
 import { DDSLoader } from "./DDSLoader.js";
 
 let lastBufferIndex = 0, lastTrail = {}, mainLastTrail = {}, trail_geometry = {}, trail_vertices = {};
-let lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0, cameraIsNull = true;  // Camera
+let lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0;  // Camera
+window.cameraIsNull = true;
 
 const MAX_POINTS = 30000;
 
 
 export function httpGet(Url) {
-    var xmlHttp = new XMLHttpRequest();
+    let xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", Url, false); // false for synchronous request
     xmlHttp.send(null);
     return JSON.parse(xmlHttp.responseText);
@@ -47,9 +48,9 @@ export function updateCamera(camera, data, json) {
         currentPlayer = data;
     }
 
-    if (cameraIsNull) {
+    if (window.cameraIsNull) {
         // Init camera
-        cameraIsNull = false;
+        window.cameraIsNull = false;
 
         camera.position.y = 10;
         camera.position.x = currentPlayer["x"] + 15 * Math.sin(currentPlayer["heading"] - Math.PI);
@@ -190,7 +191,7 @@ export function sleep(ms) {
 
 
 export function initStats(Stats) {
-    var stats = new Stats();
+    let stats = new Stats();
     stats.setMode(0); // 0: fps, 1: ms
 
     // Align top-left
