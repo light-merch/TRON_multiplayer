@@ -273,11 +273,7 @@ class Game:
 # Main page
 @app.route('/')
 def root():
-<<<<<<< HEAD
-    return render_template('main1.html')
-=======
     return render_template('main.html')
->>>>>>> a556c7b... Added fine loading screen
 
 
 # Get files from server (e.g. libs)
