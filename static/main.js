@@ -1,7 +1,6 @@
 import * as THREE from "./three.module.js";
 
 import * as GRID from "./methods.js"
-import {playMusic} from "./methods.js";
 
 let socket = io("http://" + window.location.hostname + ":" + window.location.port);
 
@@ -159,6 +158,11 @@ window.onload = function() {
         }
     });
 
+    socket.on("pingclient", function() {
+        if (window.state === "game") {
+            socket.emit("pingserver", fizzyText.username);
+        }
+    });
 
     socket.on("update", function(msg) {
         if (window.state !== "game" || typeof window.bike === "undefined") {
@@ -348,7 +352,7 @@ window.onload = function() {
         stats.begin();
         controls.update();
 
-        // This function if preserved for better times
+        // This function is preserved for better times
         // update_locally();
 
         renderer.render(scene, camera);

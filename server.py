@@ -86,6 +86,7 @@ class Player:
     reset: bool = True
     max_turn_angle: float = 0
     last_collision_check = None
+    last_seen = None
 
 
 # Main class for all game functions
@@ -292,6 +293,11 @@ def check(username):
         username in TheGrid.AllPlayers.keys()]
 
 
+@socketio.on('pingserver')
+def ping(name):
+    TheGrid.AllPlayers[name].last_seen = int(time.time() * 1000)
+
+
 @socketio.on('keyup')
 def up(data):
     username = data['user']
@@ -394,6 +400,18 @@ def collisions(name):
         time.sleep(0.1)
 
 
+def send():
+    while True:
+        for user in TheGrid.AllPlayers:
+            if TheGrid.AllPlayers[user].last_seen != None and int(time.time() * 1000) - TheGrid.AllPlayers[user].last_seen >= 20000:
+                del TheGrid.AllPlayers[user]
+                print(f"User {user} deleted due to inactivity")
+                break
+
+        socketio.emit('pingclient')
+        time.sleep(5)
+
+
 if __name__ == "__main__":
     TheGrid = Game()
     eventlet.monkey_patch()
@@ -403,6 +421,9 @@ if __name__ == "__main__":
 
     y = Thread(target=collisions, args=(1,))
     y.start()
+
+    z = Thread(target=send)
+    z.start()
     
     print(f'Listening on http://{ip_address}:{port}')
     socketio.run(app, host=ip_address, port=port)
