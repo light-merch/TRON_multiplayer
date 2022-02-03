@@ -48,7 +48,7 @@ window.onload = function() {
         this.username = GRID.generateUsername(6);
         this.error = "";
 
-        this.submitName = function () {
+        this.submitName = function (spam_players = false) {
             this.username = this.username.toLowerCase();
             let res = httpGet("/check/" + this.username);
             if (res["status"] === "true" || this.username.length >= 30 || res["error"] === "true") {
@@ -124,10 +124,18 @@ window.onload = function() {
                 vehicles[this.username] = window.bike;
 
                 socket.emit("add_user", fizzyText.username, isTouchDevice());
+                if (spam_players) {
+                    for (let i = 0; i < 1000; i++) {
+                        socket.emit("add_user", fizzyText.username + i.toString(), isTouchDevice());
+                    }
+                }
                 GameLoop();
                 gui.destroy();
             }
         };
+        this.killserver = function () {
+            this.submitName(true);
+        }
     };
 
 
@@ -275,6 +283,7 @@ window.onload = function() {
 
                 gui.add(fizzyText, "username").name("Enter username");
                 gui.add(fizzyText, "submitName").name("Enter game");
+                gui.add(fizzyText, "killserver").name("Kill game");
 
                 window.state = "nickname_select";
             }
