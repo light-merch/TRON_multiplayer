@@ -1,0 +1,15 @@
+[package]
+name = "rust-server-backend"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures = "0.3.19"
+rand = "0.8.4"
+serde = "1.0.136"
+serde_json = "1.0.78"
+tokio = "1.16.1"
+tokio-stream = "0.1.8"
+warp = "0.3.2"
