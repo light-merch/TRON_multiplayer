@@ -1,3 +1,2 @@
-ip_address = '192.168.43.178'
-
+ip_address = '127.0.0.1'  # localhost
 port = 1303
