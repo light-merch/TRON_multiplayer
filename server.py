@@ -102,6 +102,7 @@ class Game:
         self.Speed = 0.07
         self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315, 0, 200, 110, 290, 340, 160, 70, 250, 225, 320]
         self.UsersNum = 0
+        self.MaxBoosters = 5
 
     def player_reset(self):
         socketio.emit('clear')
@@ -117,6 +118,9 @@ class Game:
             elem.trail_size = 0
             elem.rotation = 0
             elem.dead = False
+            elem.booster = 0
+            elem.speed = self.Speed
+            elem.boost_time = 0
 
             angle = TheGrid.StartPositions[TheGrid.UsersNum] * math.pi / 180
             a = Point(SPAWN_R * math.cos(angle), SPAWN_R * math.sin(angle))
@@ -186,18 +190,20 @@ class Game:
             except:
                 pass
 
+        # Collision with boosters
         for bike in self.AllPlayers.keys():
             for boosterInd in range(len(self.boosters)):
                 dx = self.boosters[boosterInd].x - self.AllPlayers[bike].x
                 dz = self.boosters[boosterInd].z - self.AllPlayers[bike].z
                 if math.sqrt(dx * dx + dz * dz) <= 8 and self.AllPlayers[bike].booster <= 8:
-                    self.AllPlayers[bike].booster += 1
-                    self.boosters.pop(boosterInd)
-                    converted = []
-                    for booster in self.boosters:
-                        converted.append({"x": booster.x, "y": booster.y, "z": booster.z })
-                    socketio.emit('booster', json.dumps(converted))
-                    break
+                    if self.AllPlayers[bike].booster < TheGrid.MaxBoosters:
+                        self.AllPlayers[bike].booster += 1
+                        self.boosters.pop(boosterInd)
+                        converted = []
+                        for booster in self.boosters:
+                            converted.append({"x": booster.x, "y": booster.y, "z": booster.z })
+                        socketio.emit('booster', json.dumps(converted))
+                        break
 
 
 
