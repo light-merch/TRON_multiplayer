@@ -1,6 +1,6 @@
-import * as THREE from "./three.js/build/three.module.js";
+import * as THREE from "three";
+import { TextGeometry } from "./three.js/examples/jsm/geometries/TextGeometry.js";
 import { FontLoader } from "./three.js/examples/jsm/loaders/FontLoader.js";
-// import { TextGeometry } from "./three.js/examples/jsm/geometries/TextGeometry.js";
 
 import * as GRID from "./methods.js"
 
@@ -34,7 +34,7 @@ function makeStruct(names) {
 
 
 window.onload = function() {
-    let allPlayers, vehicles = {}, last_time = Date.now();
+    let allPlayers, allVehicles, vehicles = {}, last_time = Date.now();
     let PlayerData = {};
 
     let scene, renderer, camera, controls, stats;
@@ -159,21 +159,23 @@ window.onload = function() {
             scene.remove(selectedObject);
         }
 
-        for (let key in allPlayers) {
-            GRID.resetTrailData(key);
+        for (let id in allVehicles) {
+            GRID.resetTrailData(id);
         }
         window.cameraIsNull = true;
     });
 
 
     socket.on("booster", function(msg) {
-        let b = JSON.parse(msg);
-        const geometry = new THREE.SphereGeometry( 4, 32, 32 );
-        const material = new THREE.MeshBasicMaterial( {color: 0xff00ff} );
-        for (let i = 0; i < b.length; i++){
-            boosters.push(new THREE.Mesh( geometry, material ));
-            boosters[i].position.set(b[i].x, b[i].y, b[i].z);
-            scene.add(boosters[i]);
+        if (window.state === "game") {
+            let b = JSON.parse(msg);
+            const geometry = new THREE.SphereGeometry(4, 32, 32);
+            const material = new THREE.MeshBasicMaterial({color: 0xff00ff});
+            for (let i = 0; i < b.length; i++) {
+                boosters.push(new THREE.Mesh(geometry, material));
+                boosters[i].position.set(b[i].x, b[i].y, b[i].z);
+                scene.add(boosters[i]);
+            }
         }
     });
 
@@ -188,85 +190,100 @@ window.onload = function() {
         scene.add(window.character);
     });
 
+
     socket.on("update", function(msg) {
         if (window.state !== "game" || typeof window.bike === "undefined") {
             return;
         }
 
-        allPlayers = JSON.parse(msg);  // Parsed data from server
-        let currentPlayer = allPlayers[fizzyText.username];
-        if (currentPlayer === undefined) {
-            return;
-        }
+        let parsed = JSON.parse(msg);  // Parsed data from server
+        allPlayers = parsed["players"];
+        allVehicles = parsed["vehicles"];
 
-        GRID.updateCamera(camera, currentPlayer, true);
+        let current_vehicle_id = allPlayers[fizzyText.username]["current_vehicle"]
 
-        // Update user's bike
-        window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
-        window.bike.rotation.y = currentPlayer["heading"];
-        window.bike.rotation.z = -currentPlayer["rotation"];
-        controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
+        // Display main character
+        if (current_vehicle_id == null) {
+            // Display character
+        } else {
+            let currentPlayer = allVehicles[current_vehicle_id];
 
-        // Update boosters counter
-        let boostersgui = document.getElementsByClassName("boosters")[0].getElementsByTagName("div");
-        for (let i = 0; i < 5; i++) {
-            let boost = boostersgui[i];
-            if (i < currentPlayer["boosters"]){
-                boost.setAttribute("class", "purple")
+            if (currentPlayer === undefined) {
+                return;
             }
-            else {
-                boost.setAttribute("class", "grey")
-            }
-        }
-        // Update score
-        document.getElementById("scorenumber").innerHTML = currentPlayer["score"];
 
+            GRID.updateCamera(camera, currentPlayer, true);
 
-        // Display all players
-        for (let key in allPlayers) {
-            // Trail
-            scene = GRID.updateTrail(allPlayers, scene, key, true);
+            // Update user's bike
+            window.bike.position.set(currentPlayer["x"], currentPlayer["y"], currentPlayer["z"]);
+            window.bike.rotation.y = currentPlayer["heading"];
+            window.bike.rotation.z = -currentPlayer["rotation"];
+            controls.target.set(window.bike.position.x, window.bike.position.y, window.bike.position.z);
 
-            if (key !== fizzyText.username) {
-                if (vehicles[key] === undefined) {
-                    // New player
-                    let copy = window.template.clone();
-                    scene.add(copy);
-                    vehicles[key] = copy;
-                    window.key = key;
-
-                    let Item = makeStruct("player_name speed heading booster score" +
-                        " dead trail_size rotation boost_time toggle_controls_rotation max_turn_angle last_collision_check");
-                    PlayerData[key] = new Item("", 0, 0, 0, 0, false, 0, 0, 0, true, 0, undefined);
-
-                    // Display usernames
-                    const geometry = new TextGeometry(window.key, {
-                        font: window.font,
-                        size: 80,
-                        height: 3,
-                        curveSegments: 12,
-                        bevelEnabled: true,
-                        bevelThickness: 1,
-                        bevelSize: 1,
-                        bevelOffset: 0,
-                        bevelSegments: 5
-                    });
-
-                    geometry.computeBoundingBox();
-                    geometry.center();
-                    const material = new THREE.MeshPhongMaterial( {color: 0x444444} );
-                    let text = new THREE.Mesh(geometry, material);
-
-                    text.scale.set(0.015, 0.015, 0.015);
-                    window.names[window.key] = text;
-                    scene.add(text);
+            // Update boosters counter
+            let boostersgui = document.getElementsByClassName("boosters")[0].getElementsByTagName("div");
+            for (let i = 0; i < 5; i++) {
+                let boost = boostersgui[i];
+                if (i < currentPlayer["boosters"]) {
+                    boost.setAttribute("class", "purple")
                 } else {
-                    // Update players cars
-                    vehicles[key].position.set(allPlayers[key].x, allPlayers[key].y, allPlayers[key].z);
-                    vehicles[key].rotation.y = allPlayers[key].heading;
-                    window.names[key].position.set(allPlayers[key].x, allPlayers[key].y + 3, allPlayers[key].z);
-                    // Rotate username to face user
-                    window.names[key].lookAt(camera.position.x, 3, camera.position.z);
+                    boost.setAttribute("class", "grey")
+                }
+            }
+
+            // Update score
+            document.getElementById("scorenumber").innerHTML = currentPlayer["score"];
+        }
+
+        // Display other characters on bikes
+        for (let player in allPlayers) {
+            if (player["current_vehicle"] !== null) {
+                let key = allPlayers[player]["current_vehicle"];
+
+                // Trail
+                scene = GRID.updateTrail(allVehicles, scene, key, true);
+
+                if (key !== current_vehicle_id) {
+                    if (vehicles[key] === undefined) {
+                        // New player
+                        let copy = window.template.clone();
+                        scene.add(copy);
+                        vehicles[key] = copy;
+                        window.key = player;
+
+                        let Item = makeStruct("player_name speed heading booster score" +
+                            " dead trail_size rotation boost_time toggle_controls_rotation max_turn_angle last_collision_check");
+                        PlayerData[key] = new Item("", 0, 0, 0, 0, false, 0, 0, 0, true, 0, undefined);
+
+                        // Display usernames
+                        const geometry = new TextGeometry(window.key, {
+                            font: window.font,
+                            size: 80,
+                            height: 3,
+                            curveSegments: 12,
+                            bevelEnabled: true,
+                            bevelThickness: 1,
+                            bevelSize: 1,
+                            bevelOffset: 0,
+                            bevelSegments: 5
+                        });
+
+                        geometry.computeBoundingBox();
+                        geometry.center();
+                        const material = new THREE.MeshPhongMaterial({color: 0x444444});
+                        let text = new THREE.Mesh(geometry, material);
+
+                        text.scale.set(0.015, 0.015, 0.015);
+                        window.names[key] = text;
+                        scene.add(text);
+                    } else {
+                        // Update players cars
+                        vehicles[key].position.set(allVehicles[key].x, allVehicles[key].y, allVehicles[key].z);
+                        vehicles[key].rotation.y = allVehicles[key].heading;
+                        window.names[key].position.set(allVehicles[key].x, allVehicles[key].y + 3, allVehicles[key].z);
+                        // Rotate username to face user
+                        window.names[key].lookAt(camera.position.x, 3, camera.position.z);
+                    }
                 }
             }
         }

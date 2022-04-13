@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from threading import Thread
 import unicodedata as ud
 import json
@@ -63,21 +63,39 @@ class Point:
 # Player structure
 @dataclass
 class Player:
+    player_name: str
+    current_vehicle: int
+
+    x: float = 0
+    y: float = 0
+    z: float = 0
+    heading: float = 0
+
+    dead: bool = False
+    score: int = 0
+    last_seen = None
+
+
+# Player structure
+@dataclass
+class Lightcycle:
     x: float
     y: float
     z: float
 
-    player_name: str
+    lightcycle_id: int
+
     speed: float
     heading: float
     last_heading: float
-    x_trail: list
-    y_trail: list
-    z_trail: list
+    x_trail: list = field(default_factory=list)
+    y_trail: list = field(default_factory=list)
+    z_trail: list = field(default_factory=list)
 
+    is_seated = True
+    lightcycle_name: str = "Encom 787"  # Just the title
+    stop: bool = False
     booster: int = 0
-    score: int = 0
-    dead: bool = False
     trail_size: int = 0
     rotation: float = 0
     boost_time: int = 0
@@ -86,17 +104,18 @@ class Player:
     reset: bool = True
     max_turn_angle: float = 0
     last_collision_check = None
-    last_seen = None
 
 
 # Main class for all game functions
 class Game:
     def __init__(self) -> None:
-        self.AllPlayers = dict()
+        self.AllPlayers = dict()  # Dict to store all players (keys - usernames)
+        self.AllVehicles = list()  # List to store all vehicles
         self.LastTrail = dict()
         self.boosters = list()
         self.LastTime = int(time.time() * 1000)  # Current time in milliseconds
         self.LastBoosters = int(time.time() * 1000)
+
         self.TurnSpeed = 0.005
         self.TurnMultiplier = 0.2
         self.Speed = 0.07
@@ -108,7 +127,8 @@ class Game:
         TheGrid.UsersNum = 0
 
         for key in self.AllPlayers.keys():
-            elem = self.AllPlayers[key]
+            id = self.AllPlayers[key].current_vehicle
+            elem = self.AllVehicles[id]
 
             elem.last_collision_check = None
             elem.x_trail = []
@@ -116,7 +136,7 @@ class Game:
             elem.z_trail = []
             elem.trail_size = 0
             elem.rotation = 0
-            elem.dead = False
+            self.AllPlayers[key].dead = False
 
             angle = TheGrid.StartPositions[TheGrid.UsersNum] * math.pi / 180
             a = Point(SPAWN_R * math.cos(angle), SPAWN_R * math.sin(angle))
@@ -136,10 +156,10 @@ class Game:
         global player
         for player_key in self.AllPlayers.keys():  # Bike which we check
             for enemy_key in self.AllPlayers.keys():  # Bike for collisions
-                player = self.AllPlayers[player_key]
-                enemy = self.AllPlayers[enemy_key]
+                player = self.AllVehicles[self.AllPlayers[player_key].current_vehicle]
+                enemy = self.AllVehicles[self.AllPlayers[enemy_key].current_vehicle]
 
-                for poly in range(self.AllPlayers[enemy_key].trail_size - 1):
+                for poly in range(enemy.trail_size - 1):
                     try:
                         if player.last_collision_check is not None:
                             a = Point(player.last_collision_check.x, player.last_collision_check.y)  # Bike coords
@@ -156,10 +176,10 @@ class Game:
                                 parallel1 = max(a.x, b.x) >= min(c.x, d.x) and min(a.x, b.x) <= max(c.x, d.x)
                                 parallel2 = max(a.y, b.y) >= min(c.y, d.y) and min(a.y, b.y) <= max(c.y, d.y)
 
-                                if parallel1 and parallel2 and not player.dead:
-                                    player.dead = True
+                                if parallel1 and parallel2 and not self.AllPlayers[player_key].dead:
+                                    self.AllPlayers[player_key].dead = True
                                     if player_key != enemy_key:
-                                        enemy.score += 1
+                                        self.AllPlayers[enemy_key].score += 1
                                     self.UsersNum -= 1
                                     if TheGrid.UsersNum <= 1:
                                         TheGrid.player_reset()
@@ -172,26 +192,28 @@ class Game:
 
         for bike_key in self.AllPlayers.keys():
             try:
-                dx = abs(self.LastTrail[bike_key].x - self.AllPlayers[bike_key].x)
-                dz = abs(self.LastTrail[bike_key].z - self.AllPlayers[bike_key].z)
+                id = self.AllPlayers[bike_key].current_vehicle
+                dx = abs(self.LastTrail[bike_key].x - self.AllVehicles[id].x)
+                dz = abs(self.LastTrail[bike_key].z - self.AllVehicles[id].z)
 
                 if dx * dx + dz * dz > 50:
-                    self.AllPlayers[bike_key].x_trail.append(self.AllPlayers[bike_key].x)
-                    self.AllPlayers[bike_key].y_trail.append(self.AllPlayers[bike_key].y)
-                    self.AllPlayers[bike_key].z_trail.append(self.AllPlayers[bike_key].z)
-                    self.AllPlayers[bike_key].trail_size += 1
+                    self.AllVehicles[id].x_trail.append(self.AllVehicles[id].x)
+                    self.AllVehicles[id].y_trail.append(self.AllVehicles[id].y)
+                    self.AllVehicles[id].z_trail.append(self.AllVehicles[id].z)
+                    self.AllVehicles[id].trail_size += 1
 
-                    self.LastTrail[bike_key].x = self.AllPlayers[bike_key].x
-                    self.LastTrail[bike_key].z = self.AllPlayers[bike_key].z
+                    self.LastTrail[bike_key].x = self.AllVehicles[id].x
+                    self.LastTrail[bike_key].z = self.AllVehicles[id].z
             except:
                 pass
 
         for bike in self.AllPlayers.keys():
+            id = self.AllPlayers[bike].current_vehicle
             for boosterInd in range(len(self.boosters)):
-                dx = self.boosters[boosterInd].x - self.AllPlayers[bike].x
-                dz = self.boosters[boosterInd].z - self.AllPlayers[bike].z
-                if math.sqrt(dx * dx + dz * dz) <= 8 and self.AllPlayers[bike].booster <= 8:
-                    self.AllPlayers[bike].booster += 1
+                dx = self.boosters[boosterInd].x - self.AllVehicles[id].x
+                dz = self.boosters[boosterInd].z - self.AllVehicles[id].z
+                if math.sqrt(dx * dx + dz * dz) <= 8 and self.AllVehicles[id].booster <= 8:
+                    self.AllVehicles[id].booster += 1
                     self.boosters.pop(boosterInd)
                     converted = []
                     for booster in self.boosters:
@@ -205,9 +227,14 @@ class Game:
     def update(self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():  # Iterate over all players
+            id = self.AllPlayers[bike_key].current_vehicle
+
+            if self.AllVehicles[id].stop:
+                continue
+
             # Out of borders
-            if abs(self.AllPlayers[bike_key].x) > 500 or abs(self.AllPlayers[bike_key].z) > 800:
-                self.AllPlayers[bike_key].dead = True
+            if abs(self.AllVehicles[id].x) > 500 or abs(self.AllVehicles[id].z) > 800:
+                self.AllVehicles[id].dead = True
                 self.UsersNum -= 1
                 if self.UsersNum <= 1:
                     self.player_reset()
@@ -215,43 +242,43 @@ class Game:
             if self.AllPlayers[bike_key].dead:
                 continue
 
-            if self.AllPlayers[bike_key].boost_time <= 0:
+            if self.AllVehicles[id].boost_time <= 0:
                 # Reset player speed to normal
-                self.AllPlayers[bike_key].speed = min(TheGrid.Speed, self.AllPlayers[bike_key].speed + 0.01)
+                self.AllVehicles[id].speed = min(TheGrid.Speed, self.AllVehicles[id].speed + 0.01)
             else:
                 # Update boost time
-                self.AllPlayers[bike_key].boost_time -= (current_time - self.LastTime)
-                self.AllPlayers[bike_key].speed = min(TheGrid.Speed * 3, self.AllPlayers[bike_key].speed + 0.01)
+                self.AllVehicles[id].boost_time -= (current_time - self.LastTime)
+                self.AllVehicles[id].speed = min(TheGrid.Speed * 3, self.AllVehicles[id].speed + 0.01)
 
             # Bike vertical rotation
-            if self.AllPlayers[bike_key].reset:
+            if self.AllVehicles[id].reset:
                 # Reset to vertical state
-                if self.AllPlayers[bike_key].rotation > 0:
-                    self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.03,
-                                                             self.AllPlayers[bike_key].max_turn_angle)
+                if self.AllVehicles[id].rotation > 0:
+                    self.AllVehicles[id].rotation = max(self.AllVehicles[id].rotation - 0.03,
+                                                             self.AllVehicles[id].max_turn_angle)
                 else:
-                    self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.03,
-                                                             self.AllPlayers[bike_key].max_turn_angle)
+                    self.AllVehicles[id].rotation = min(self.AllVehicles[id].rotation + 0.03,
+                                                             self.AllVehicles[id].max_turn_angle)
             else:
                 # Slowly turn
-                if self.AllPlayers[bike_key].max_turn_angle > 0:
+                if self.AllVehicles[id].max_turn_angle > 0:
                     # Right turn
-                    self.AllPlayers[bike_key].rotation = min(self.AllPlayers[bike_key].rotation + 0.02,
-                                                             self.AllPlayers[bike_key].max_turn_angle)
+                    self.AllVehicles[id].rotation = min(self.AllVehicles[id].rotation + 0.02,
+                                                             self.AllVehicles[id].max_turn_angle)
                 else:
                     # Left turn
-                    self.AllPlayers[bike_key].rotation = max(self.AllPlayers[bike_key].rotation - 0.02,
-                                                             self.AllPlayers[bike_key].max_turn_angle)
+                    self.AllVehicles[id].rotation = max(self.AllVehicles[id].rotation - 0.02,
+                                                             self.AllVehicles[id].max_turn_angle)
 
             # Update heading (heading is updated through bike.rotation)
-            self.AllPlayers[bike_key].heading += (current_time - self.LastTime) * self.AllPlayers[
-                bike_key].rotation * self.TurnSpeed
-            speed = (current_time - self.LastTime) * self.AllPlayers[bike_key].speed
-            self.AllPlayers[bike_key].speed = max(0, self.AllPlayers[bike_key].speed - abs(self.AllPlayers[bike_key].heading - self.AllPlayers[bike_key].last_heading) * self.TurnMultiplier)
+            self.AllVehicles[id].heading += (current_time - self.LastTime) * self.AllVehicles[
+                id].rotation * self.TurnSpeed
+            speed = (current_time - self.LastTime) * self.AllVehicles[id].speed
+            self.AllVehicles[id].speed = max(0, self.AllVehicles[id].speed - abs(self.AllVehicles[id].heading - self.AllVehicles[id].last_heading) * self.TurnMultiplier)
 
-            self.AllPlayers[bike_key].x += speed * math.sin(self.AllPlayers[bike_key].heading)
-            self.AllPlayers[bike_key].z += speed * math.cos(self.AllPlayers[bike_key].heading)
-            self.AllPlayers[bike_key].last_heading = self.AllPlayers[bike_key].heading
+            self.AllVehicles[id].x += speed * math.sin(self.AllVehicles[id].heading)
+            self.AllVehicles[id].z += speed * math.cos(self.AllVehicles[id].heading)
+            self.AllVehicles[id].last_heading = self.AllVehicles[id].heading
 
         # Create boosters
         if current_time - self.LastBoosters > (10000) and len(self.boosters) < 10 and self.UsersNum:
@@ -303,8 +330,9 @@ def up(data):
     username = data['user']
     try:
         if data['key'] == 65 or data['key'] == 68:  # A or D
-            TheGrid.AllPlayers[username].max_turn_angle = 0
-            TheGrid.AllPlayers[username].reset = True
+            id = TheGrid.AllPlayers[username].current_vehicle
+            TheGrid.AllVehicles[id].max_turn_angle = 0
+            TheGrid.AllVehicles[id].reset = True
     except:
         pass
 
@@ -313,23 +341,28 @@ def up(data):
 def down(data):
     username = data['user']
     try:
+        id = TheGrid.AllPlayers[username].current_vehicle
         if data["key"] == 70:  # F
-            TheGrid.AllPlayers[username].dead = True
+            TheGrid.AllVehicles[id].stop = True
+            TheGrid.AllPlayers[username].x = TheGrid.AllVehicles[id].x
+            TheGrid.AllPlayers[username].y = TheGrid.AllVehicles[id].y
+            TheGrid.AllPlayers[username].z = TheGrid.AllVehicles[id].z
+
             socketio.emit("exit_bike")
 
         elif data['key'] == 65:  # A
-            TheGrid.AllPlayers[username].max_turn_angle = 0.7
-            TheGrid.AllPlayers[username].reset = False
+            TheGrid.AllVehicles[id].max_turn_angle = 0.7
+            TheGrid.AllVehicles[id].reset = False
         elif data['key'] == 68:  # D
-            TheGrid.AllPlayers[username].max_turn_angle = -0.7
-            TheGrid.AllPlayers[username].reset = False
+            TheGrid.AllVehicles[id].max_turn_angle = -0.7
+            TheGrid.AllVehicles[id].reset = False
         elif data['key'] == 16:  # Shift
-            TheGrid.AllPlayers[username].speed = TheGrid.Speed * 3
-            TheGrid.AllPlayers[username].boost_time = 2000 * TheGrid.AllPlayers[username].booster
-            TheGrid.AllPlayers[username].booster = 0
+            TheGrid.AllVehicles[id].speed = TheGrid.Speed * 3
+            TheGrid.AllVehicles[id].boost_time = 2000 * TheGrid.AllVehicles[id].booster
+            TheGrid.AllVehicles[id].booster = 0
         elif data['key'] == 67:  # C
-            TheGrid.AllPlayers[username].toggle_controls_rotation = not TheGrid.AllPlayers[
-                username].toggle_controls_rotation
+            TheGrid.AllVehicles[id][username].toggle_controls_rotation = not TheGrid.AllVehicles[
+                id].toggle_controls_rotation
 
     except Exception as e:
         print(e)
@@ -355,8 +388,13 @@ def add(username, mobile):
         b = Point(0, 800)
 
         heading = math.atan2(a.cp(b), a.dp(b)) - math.pi
-        TheGrid.AllPlayers[username] = Player(SPAWN_R * math.cos(angle), 0, SPAWN_R * math.sin(angle),
-                                              username, TheGrid.Speed, heading, heading, [], [], [])
+
+        id = len(TheGrid.AllVehicles)  # Generate id for the new bike
+        TheGrid.AllVehicles.append(Lightcycle(SPAWN_R * math.cos(angle), 0, SPAWN_R * math.sin(angle), id,
+            TheGrid.Speed, heading, heading))  # Create new bike
+
+        TheGrid.AllPlayers[username] = Player(username, id)  # Initialise player on bike
+
         TheGrid.UsersNum += 1
         converted = []
         for booster in TheGrid.boosters:
@@ -378,18 +416,49 @@ def game_loop(name):
     while True:
         TheGrid.update()
 
-        # Convert to JSON
-        converted = dict()
+        # Append all vehicles with users riding them
+        converted = {
+            "players": {},
+            "vehicles": {}
+        }
+
         for player in TheGrid.AllPlayers.items():
-            converted[player[0]] = {'x': player[1].x,
+            id = player[1].current_vehicle
+            if id != None:
+                converted["vehicles"][id] = {'x': TheGrid.AllVehicles[id].x,
+                                        'y': TheGrid.AllVehicles[id].y,
+                                        'z': TheGrid.AllVehicles[id].z,
+                                        'heading': TheGrid.AllVehicles[id].heading,
+                                        'controls': TheGrid.AllVehicles[id].toggle_controls_rotation,
+                                        'rotation': TheGrid.AllVehicles[id].rotation,
+                                        'status': player[1].dead,
+                                        'boosters': TheGrid.AllVehicles[id].booster,
+                                        'score': player[1].score,
+                                        'empty_bike': False}
+
+        # Append all empty vehicles
+        for id, vehicle in enumerate(TheGrid.AllVehicles):
+            if vehicle.is_seated == False:
+                converted["vehicles"][id] = {'x': vehicle.x,
+                                        'y': vehicle.y,
+                                        'z': vehicle.z,
+                                        'heading': vehicle.heading,
+                                        'controls': vehicle.toggle_controls_rotation,
+                                        'rotation': vehicle.rotation,
+                                        'boosters': vehicle.booster,
+                                        'empty_bike': True}
+
+
+        # Send all player characters
+        for player in TheGrid.AllPlayers.items():
+            converted["players"][player[0]] = {'x': player[1].x,
                                     'y': player[1].y,
                                     'z': player[1].z,
                                     'heading': player[1].heading,
-                                    'controls': player[1].toggle_controls_rotation,
-                                    'rotation': player[1].rotation,
                                     'status': player[1].dead,
-                                    'boosters': player[1].booster,
-                                    'score': player[1].score}
+                                    'score': player[1].score,
+                                    'current_vehicle': player[1].current_vehicle}
+
 
         if len(TheGrid.AllPlayers) != 0:
             socketio.emit('update', json.dumps(converted))
@@ -419,6 +488,9 @@ def send():
 if __name__ == "__main__":
     TheGrid = Game()
     eventlet.monkey_patch()
+
+    TheGrid.AllVehicles.append(Lightcycle(10, 0, -5, 0, 0, 0, 0))
+    TheGrid.AllVehicles[0].is_seated = False
 
     x = Thread(target=game_loop, args=(1,))
     x.start()

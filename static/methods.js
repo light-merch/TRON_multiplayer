@@ -99,23 +99,26 @@ export function updateTrail(data, scene, key, json) {
     let trailQuality = 8;
 
     let allPlayers = {};
-    if (!json) {
+    if (json) {
+        allPlayers = data[key];
+    } else {
         allPlayers["heading"] = data[key].rotation.y;
         allPlayers["rotation"] = -data[key].rotation.z;
         allPlayers["x"] = data[key].position.x;
         allPlayers["y"] = data[key].position.y;
         allPlayers["z"] = data[key].position.z;
-    } else {
-        allPlayers = data[key];
     }
 
+    console.log(key);
     if (trail_geometry[key] === undefined) {
         // Init trail for a new player
         trail_geometry[key] = new THREE.BufferGeometry();
         trail_vertices[key] = new Float32Array(MAX_POINTS * 3);
+        // console.log(allPlayers);
         lastTrail[key] = [new THREE.Vector3(allPlayers["x"], allPlayers["y"], allPlayers["z"]),
             new THREE.Vector3(allPlayers["x"], allPlayers["y"] + 1, allPlayers["z"])];
         mainLastTrail[key] = Object.assign({}, lastTrail[key]);
+        // console.log(lastTrail[key])
 
 
         // Trail init
@@ -131,6 +134,7 @@ export function updateTrail(data, scene, key, json) {
         });
         mesh.frustumCulled = false;
     } else {
+        // console.log(mainLastTrail);
         let dx = Math.abs(mainLastTrail[key][0].x - allPlayers["x"]);
         let dz = Math.abs(mainLastTrail[key][0].z - allPlayers["z"]);
 
