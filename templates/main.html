@@ -8,6 +8,11 @@
             body { margin: 0; overflow: hidden; }
             canvas { width: 100%; height: 100%; }
 
+            @font-face {
+                font-family: TRON;
+                src: URL('/fonts/TRON.ttf') format('truetype');
+            }
+
             .boosters {
                 position: absolute;
                 bottom: 0px;
@@ -63,6 +68,22 @@
                 opacity: 1;
                 display: inline-block;
             }
+            .display {
+                font-family: TRON;
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 0;
+                overflow: auto;
+                color: #ffffff; 
+                text-align: center; 
+                font-size: 45px; 
+                text-shadow: 3px 3px 0px #00c9ff, 5px 5px 0px #3762fb; 
+                display: flex; 
+                justify-content: center; 
+                align-items: center; 
+            } 
         </style>
     </head>
 
@@ -70,10 +91,8 @@
         <script src="stats.min.js"></script>
         <script src="dat.gui.min.js"></script>
         <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
-        <script src="//js.honeybadger.io/v3.0/honeybadger.min.js" type="text/javascript"></script>
 
-        <script type="text/javascript" src="app_type.js"></script>
-
+        <div class="display"></div>
         <div class="controls"></div>
         <div class="boost"></div>
 
