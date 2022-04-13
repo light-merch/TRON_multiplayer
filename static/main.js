@@ -1,4 +1,6 @@
-import * as THREE from "./three.module.js";
+import * as THREE from "./three.js/build/three.module.js";
+import { FontLoader } from "./three.js/examples/jsm/loaders/FontLoader.js";
+// import { TextGeometry } from "./three.js/examples/jsm/geometries/TextGeometry.js";
 
 import * as GRID from "./methods.js"
 
@@ -43,6 +45,22 @@ window.onload = function() {
     window.state = "title_screen";
     window.names = {};
 
+    class Animations {
+        constructor() {
+            this.idleAction = undefined; this.walkAction = undefined; this.runAction = undefined;
+            this.idleWeight = undefined; this.walkWeight = undefined; this.runWeight = undefined;
+            this.actions = undefined; this.settings = undefined;
+
+            this.skeleton = undefined; this.mixer = undefined; this.clock = undefined;
+
+            this.crossFadeControls = [];
+
+            this.singleStepMode = false;
+            this.sizeOfNextStep = 0;
+        }
+    }
+    window.animating = new Animations();
+
 
     const FizzyText = function () {
         this.username = GRID.generateUsername(6);
@@ -53,7 +71,7 @@ window.onload = function() {
             let res = httpGet("/check/" + this.username);
             if (res["status"] === "true" || this.username.length >= 30 || res["error"] === "true") {
                 if (this.error === "") {
-                    this.error = "This username is already taken or contains Non-English letters"
+                    this.error = "This username is already taken or contains non-English letters"
                     let e = gui.add(fizzyText, "error").name("Error");
                     e.domElement.style.pointerEvents = "none";
                 }
@@ -125,7 +143,7 @@ window.onload = function() {
 
                 socket.emit("add_user", fizzyText.username, isTouchDevice());
                 GameLoop();
-                gui.destroy();
+                // gui.destroy();
             }
         };
     };
@@ -163,6 +181,11 @@ window.onload = function() {
         if (window.state === "game") {
             socket.emit("pingserver", fizzyText.username);
         }
+    });
+
+    socket.on("exit_bike", function() {
+        controls.enableZoom = true;
+        scene.add(window.character);
     });
 
     socket.on("update", function(msg) {
@@ -217,7 +240,7 @@ window.onload = function() {
                     PlayerData[key] = new Item("", 0, 0, 0, 0, false, 0, 0, 0, true, 0, undefined);
 
                     // Display usernames
-                    const geometry = new THREE.TextGeometry(window.key, {
+                    const geometry = new TextGeometry(window.key, {
                         font: window.font,
                         size: 80,
                         height: 3,
@@ -276,6 +299,13 @@ window.onload = function() {
                 gui.add(fizzyText, "username").name("Enter username");
                 gui.add(fizzyText, "submitName").name("Enter game");
 
+                const folder = gui.addFolder( 'Crossfading' );
+                window.animating.crossFadeControls.push( folder.add( window.animating.settings, 'from walk to idle' ) );
+                window.animating.crossFadeControls.push( folder.add( window.animating.settings, 'from idle to walk' ) );
+                window.animating.crossFadeControls.push( folder.add( window.animating.settings, 'from walk to run' ) );
+                window.animating.crossFadeControls.push( folder.add( window.animating.settings, 'from run to walk' ) );
+                folder.open();
+
                 window.state = "nickname_select";
             }
         } else if (window.state === "nickname_select") {
@@ -303,7 +333,7 @@ window.onload = function() {
     }
 
 
-    const loader = new THREE.FontLoader();
+    const loader = new FontLoader();
     loader.load( "models/font.json", function (font) {
         window.font = font;
     });
@@ -352,6 +382,14 @@ window.onload = function() {
         requestAnimationFrame(GameLoop);
         stats.begin();
         controls.update();
+
+        window.animating.idleWeight = window.animating.idleAction.getEffectiveWeight();
+        window.animating.walkWeight = window.animating.walkAction.getEffectiveWeight();
+        window.animating.runWeight = window.animating.runAction.getEffectiveWeight();
+
+        // Get the time elapsed since the last frame, used for mixer update (if not in single step mode)
+        let mixerUpdateDelta = window.animating.clock.getDelta();
+        window.animating.mixer.update( mixerUpdateDelta );
 
         // This function is preserved for better times
         // update_locally();

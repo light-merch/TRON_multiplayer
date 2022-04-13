@@ -1,9 +1,10 @@
-import * as THREE from "./three.module.js";
+import * as THREE from "./three.js/build/three.module.js";
 
-import { OrbitControls } from "./OrbitControls.js";
-import { OBJLoader } from "./OBJLoader.js";
-import { MTLLoader } from "./MTLLoader.js";
-import { DDSLoader } from "./DDSLoader.js";
+import { OrbitControls } from "./three.js/examples/jsm/controls/OrbitControls.js";
+import { OBJLoader } from "./three.js/examples/jsm/loaders/OBJLoader.js";
+import { MTLLoader } from "./three.js/examples/jsm/loaders/MTLLoader.js";
+import { DDSLoader } from "./three.js/examples/jsm/loaders/DDSLoader.js";
+import { GLTFLoader } from "./three.js/examples/jsm/loaders/GLTFLoader.js";
 
 let lastBufferIndex = 0, lastTrail = {}, mainLastTrail = {}, trail_geometry = {}, trail_vertices = {};
 let lastX = 0, lastY = 0, lastZ = 0, lastHeading = 0;  // Camera
@@ -202,6 +203,7 @@ export function initStats(Stats) {
     return stats;
 }
 
+
 export function playMusic(camera) {
     // Create an AudioListener and add it to the camera
     const listener = new THREE.AudioListener();
@@ -216,10 +218,114 @@ export function playMusic(camera) {
         sound.setBuffer( buffer );
         sound.setLoop( true );
         sound.setVolume( 0.5 );
-        sound.play();
+        // sound.play();
     });
 }
 
+
+function prepareCrossFade( startAction, endAction, defaultDuration ) {
+    // Switch default / custom crossfade duration (according to the user's choice)
+
+    const duration = setCrossFadeDuration( defaultDuration, window.animating );
+
+    // Make sure that we don't go on in singleStepMode, and that all actions are unpaused
+
+
+    unPauseAllActions(window.animating);
+
+    // If the current action is 'idle' (duration 4 sec), execute the crossfade immediately;
+    // else wait until the current action has finished its current loop
+
+    if ( startAction === window.animating.idleAction ) {
+        executeCrossFade( startAction, endAction, duration );
+    } else {
+        synchronizeCrossFade( startAction, endAction, duration );
+    }
+
+    return window.animating;
+}
+
+function setCrossFadeDuration( defaultDuration ) {
+    // Switch default crossfade duration <-> custom crossfade duration
+
+    if ( window.animating.settings[ 'use default duration' ] ) {
+        return defaultDuration;
+    } else {
+        return window.animating.settings[ 'set custom duration' ];
+    }
+}
+
+
+function synchronizeCrossFade( startAction, endAction, duration ) {
+    window.animating.mixer.addEventListener( 'loop', onLoopFinished );
+
+    function onLoopFinished( event ) {
+        if (event.action === startAction) {
+            window.animating.mixer.removeEventListener( 'loop', onLoopFinished );
+
+            executeCrossFade( startAction, endAction, duration );
+        }
+    }
+}
+
+function executeCrossFade( startAction, endAction, duration ) {
+    // Not only the start action, but also the end action must get a weight of 1 before fading
+    // (concerning the start action this is already guaranteed in this place)
+
+    setWeight( endAction, 1 );
+    endAction.time = 0;
+
+    // Crossfade with warping - you can also try without warping by setting the third parameter to false
+
+    startAction.crossFadeTo( endAction, duration, true );
+}
+
+
+// This function is needed, since animationAction.crossFadeTo() disables its start action and sets
+// the start action's timeScale to ((start animation's duration) / (end animation's duration))
+export function setWeight( action, weight ) {
+    action.enabled = true;
+    action.setEffectiveTimeScale( 1 );
+    action.setEffectiveWeight( weight );
+}
+
+
+// Controlling actions (stop, play, pause)
+function activateAllActions() {
+    setWeight( window.animating.idleAction, window.animating.settings[ 'modify idle weight' ] );
+    setWeight( window.animating.walkAction, window.animating.settings[ 'modify walk weight' ] );
+    setWeight( window.animating.runAction, window.animating.settings[ 'modify run weight' ] );
+
+    window.animating.actions.forEach( function ( action ) {
+        action.play();
+    } );
+}
+
+
+function deactivateAllActions() {
+    window.animating.actions.forEach( function ( action ) {
+        action.stop();
+    });
+}
+
+
+function pauseContinue() {
+    if (window.animating.idleAction.paused) {
+        unPauseAllActions();
+    } else {
+        pauseAllActions();
+    }
+}
+
+
+function unPauseAllActions() {
+    window.animating.actions.forEach( function ( action ) {
+        action.paused = false;
+    });
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export function init() {
     // Init HTML
     let title_screen = document.getElementById("title_screen");
@@ -237,11 +343,10 @@ export function init() {
         '<div id="4" class="grey"></div>\n' +
         '<div id="5" class="grey"></div>\n';
 
-    console.log("hello there");
 
     // Proceed with Three.js
     let scene = new THREE.Scene();
-    let camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 5000);
+    let camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 5000);
 
     let renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -310,6 +415,64 @@ export function init() {
                 }, onProgress, onError );
 
         } );
+
+
+    // Animation settings
+    window.animating.clock = new THREE.Clock();
+    window.animating.settings = {
+        'show model': true,
+        'show skeleton': false,
+        'deactivate all': deactivateAllActions,
+        'activate all': activateAllActions,
+        'pause/continue': pauseContinue,
+        'modify step size': 0.05,
+        'from walk to idle': function () {
+            window.animating = prepareCrossFade( window.animating.walkAction, window.animating.idleAction, 1.0 );
+        },
+        'from idle to walk': function () {
+            window.animating = prepareCrossFade( window.animating.idleAction, window.animating.walkAction, 0.5 );
+        },
+        'from walk to run': function () {
+            window.animating = prepareCrossFade( window.animating.walkAction, window.animating.runAction, 2.5 );
+        },
+        'from run to walk': function () {
+            window.animating = prepareCrossFade( window.animating.runAction, window.animating.walkAction, 5.0 );
+        },
+        'use default duration': true,
+        'set custom duration': 1.5,
+        'modify idle weight': 1.0,
+        'modify walk weight': 0.0,
+        'modify run weight': 0.0,
+        'modify time scale': 1.0
+    };
+
+    // Load animations
+    const loader = new GLTFLoader();
+    loader.load( 'three.js/examples/models/gltf/Soldier.glb', function (gltf) {
+        window.character = gltf.scene;
+        window.character.scale.set(2, 2, 2);
+
+        window.character.traverse(function (object) {
+            if (object.isMesh) object.castShadow = true;
+        });
+
+        window.animating.skeleton = new THREE.SkeletonHelper( window.character );
+        window.animating.skeleton.visible = false;
+        scene.add(window.animating.skeleton);
+
+
+        const animations = gltf.animations;
+
+        window.animating.mixer = new THREE.AnimationMixer( window.character );
+
+        window.animating.idleAction = window.animating.mixer.clipAction( animations[ 0 ] );
+        window.animating.walkAction = window.animating.mixer.clipAction( animations[ 3 ] );
+        window.animating.runAction = window.animating.mixer.clipAction( animations[ 1 ] );
+
+        window.animating.actions = [ window.animating.idleAction, window.animating.walkAction, window.animating.runAction ];
+        activateAllActions();
+    });
+
 
     // light
     let ambientLight = new THREE.AmbientLight(0xFFFFFF, 8);

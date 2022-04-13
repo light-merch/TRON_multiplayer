@@ -319,7 +319,11 @@ def up(data):
 def down(data):
     username = data['user']
     try:
-        if data['key'] == 65:  # A
+        if data["key"] == 70:  # F
+            TheGrid.AllPlayers[username].dead = True
+            socketio.emit("exit_bike")
+
+        elif data['key'] == 65:  # A
             TheGrid.AllPlayers[username].max_turn_angle = 0.7
             TheGrid.AllPlayers[username].reset = False
         elif data['key'] == 68:  # D
