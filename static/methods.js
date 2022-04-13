@@ -218,8 +218,66 @@ export function playMusic(camera) {
         sound.setBuffer( buffer );
         sound.setLoop( true );
         sound.setVolume( 0.5 );
-        sound.play();
+        // sound.play();
     });
+}
+
+
+function prepareCrossFade( startAction, endAction, defaultDuration ) {
+    // Switch default / custom crossfade duration (according to the user's choice)
+
+    const duration = setCrossFadeDuration( defaultDuration, window.animating );
+
+    // Make sure that we don't go on in singleStepMode, and that all actions are unpaused
+
+
+    unPauseAllActions(window.animating);
+
+    // If the current action is 'idle' (duration 4 sec), execute the crossfade immediately;
+    // else wait until the current action has finished its current loop
+
+    if ( startAction === window.animating.idleAction ) {
+        executeCrossFade( startAction, endAction, duration );
+    } else {
+        synchronizeCrossFade( startAction, endAction, duration );
+    }
+
+    return window.animating;
+}
+
+function setCrossFadeDuration( defaultDuration ) {
+    // Switch default crossfade duration <-> custom crossfade duration
+
+    if ( window.animating.settings[ 'use default duration' ] ) {
+        return defaultDuration;
+    } else {
+        return window.animating.settings[ 'set custom duration' ];
+    }
+}
+
+
+function synchronizeCrossFade( startAction, endAction, duration ) {
+    window.animating.mixer.addEventListener( 'loop', onLoopFinished );
+
+    function onLoopFinished( event ) {
+        if (event.action === startAction) {
+            window.animating.mixer.removeEventListener( 'loop', onLoopFinished );
+
+            executeCrossFade( startAction, endAction, duration );
+        }
+    }
+}
+
+function executeCrossFade( startAction, endAction, duration ) {
+    // Not only the start action, but also the end action must get a weight of 1 before fading
+    // (concerning the start action this is already guaranteed in this place)
+
+    setWeight( endAction, 1 );
+    endAction.time = 0;
+
+    // Crossfade with warping - you can also try without warping by setting the third parameter to false
+
+    startAction.crossFadeTo( endAction, duration, true );
 }
 
 
@@ -232,100 +290,43 @@ export function setWeight( action, weight ) {
 }
 
 
-// Called by the render loop
-export function updateWeightSliders(animating) {
-    animating.settings[ 'modify idle weight' ] = animating.idleWeight;
-    animating.settings[ 'modify walk weight' ] = animating.walkWeight;
-    animating.settings[ 'modify run weight' ] = animating.runWeight;
+// Controlling actions (stop, play, pause)
+function activateAllActions() {
+    setWeight( window.animating.idleAction, window.animating.settings[ 'modify idle weight' ] );
+    setWeight( window.animating.walkAction, window.animating.settings[ 'modify walk weight' ] );
+    setWeight( window.animating.runAction, window.animating.settings[ 'modify run weight' ] );
 
-    return animating
-}
-
-
-// Called by the render loop
-export function updateCrossFadeControls(animating) {
-    if (animating.idleWeight === 1 && animating.walkWeight === 0 && animating.runWeight === 0) {
-        animating.crossFadeControls[ 0 ].disable();
-        animating.crossFadeControls[ 1 ].enable();
-        animating.crossFadeControls[ 2 ].disable();
-        animating.crossFadeControls[ 3 ].disable();
-    }
-
-    if (animating.idleWeight === 0 && animating.walkWeight === 1 && animating.runWeight === 0) {
-        animating.crossFadeControls[ 0 ].enable();
-        animating.crossFadeControls[ 1 ].disable();
-        animating.crossFadeControls[ 2 ].enable();
-        animating.crossFadeControls[ 3 ].disable();
-    }
-
-    if (animating.idleWeight === 0 && animating.walkWeight === 0 && animating.runWeight === 1) {
-        animating.crossFadeControls[ 0 ].disable();
-        animating.crossFadeControls[ 1 ].disable();
-        animating.crossFadeControls[ 2 ].disable();
-        animating.crossFadeControls[ 3 ].enable();
-    }
-}
-
-
-function activateAllActions(animating) {
-    console.log(animating.settings);
-    setWeight( animating.idleAction, animating.settings[ 'modify idle weight' ] );
-    setWeight( animating.walkAction, animating.settings[ 'modify walk weight' ] );
-    setWeight( animating.runAction, animating.settings[ 'modify run weight' ] );
-
-    animating.actions.forEach( function ( action ) {
+    window.animating.actions.forEach( function ( action ) {
         action.play();
     } );
-
-    return animating
 }
 
 
-function deactivateAllActions(animating) {
-    animating.actions.forEach( function ( action ) {
+function deactivateAllActions() {
+    window.animating.actions.forEach( function ( action ) {
         action.stop();
     });
-
-    return animating;
 }
 
 
-function pauseContinue(animating) {
-    if (animating.singleStepMode) {
-        animating.singleStepMode = false;
+function pauseContinue() {
+    if (window.animating.idleAction.paused) {
         unPauseAllActions();
     } else {
-        if (animating.idleAction.paused) {
-            unPauseAllActions();
-        } else {
-            pauseAllActions();
-        }
+        pauseAllActions();
     }
-
-    return animating;
 }
 
 
-function unPauseAllActions(animating) {
-    animating.actions.forEach( function ( action ) {
+function unPauseAllActions() {
+    window.animating.actions.forEach( function ( action ) {
         action.paused = false;
     });
-
-    return animating;
-}
-
-function toSingleStepMode(animating) {
-    unPauseAllActions();
-
-    animating.singleStepMode = true;
-    animating.sizeOfNextStep = settings[ 'modify step size' ];
-
-    return animating;
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-export function init(animating) {
+export function init() {
     // Init HTML
     let title_screen = document.getElementById("title_screen");
     title_screen.remove(); // Removes the div with the 'title_screen' id
@@ -345,7 +346,7 @@ export function init(animating) {
 
     // Proceed with Three.js
     let scene = new THREE.Scene();
-    let camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 5000);
+    let camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 5000);
 
     let renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -417,39 +418,30 @@ export function init(animating) {
 
 
     // Animation settings
-    animating.clock = new THREE.Clock();
-    animating.settings = {
+    window.animating.clock = new THREE.Clock();
+    window.animating.settings = {
         'show model': true,
         'show skeleton': false,
         'deactivate all': deactivateAllActions,
         'activate all': activateAllActions,
         'pause/continue': pauseContinue,
-        'make single step': toSingleStepMode,
         'modify step size': 0.05,
         'from walk to idle': function () {
-
-            prepareCrossFade( walkAction, idleAction, 1.0 );
-
+            window.animating = prepareCrossFade( window.animating.walkAction, window.animating.idleAction, 1.0 );
         },
         'from idle to walk': function () {
-
-            prepareCrossFade( idleAction, walkAction, 0.5 );
-
+            window.animating = prepareCrossFade( window.animating.idleAction, window.animating.walkAction, 0.5 );
         },
         'from walk to run': function () {
-
-            prepareCrossFade( walkAction, runAction, 2.5 );
-
+            window.animating = prepareCrossFade( window.animating.walkAction, window.animating.runAction, 2.5 );
         },
         'from run to walk': function () {
-
-            prepareCrossFade( runAction, walkAction, 5.0 );
-
+            window.animating = prepareCrossFade( window.animating.runAction, window.animating.walkAction, 5.0 );
         },
         'use default duration': true,
-        'set custom duration': 3.5,
-        'modify idle weight': 0.0,
-        'modify walk weight': 1.0,
+        'set custom duration': 1.5,
+        'modify idle weight': 1.0,
+        'modify walk weight': 0.0,
         'modify run weight': 0.0,
         'modify time scale': 1.0
     };
@@ -457,30 +449,28 @@ export function init(animating) {
     // Load animations
     const loader = new GLTFLoader();
     loader.load( 'three.js/examples/models/gltf/Soldier.glb', function (gltf) {
-        window.model = gltf.scene;
-        scene.add(model);
+        window.character = gltf.scene;
+        window.character.scale.set(2, 2, 2);
 
-        window.model.traverse(function (object) {
+        window.character.traverse(function (object) {
             if (object.isMesh) object.castShadow = true;
         });
 
-        animating.skeleton = new THREE.SkeletonHelper( window.model );
-        animating.skeleton.visible = false;
-        scene.add(animating.skeleton);
+        window.animating.skeleton = new THREE.SkeletonHelper( window.character );
+        window.animating.skeleton.visible = false;
+        scene.add(window.animating.skeleton);
 
 
         const animations = gltf.animations;
 
-        animating.mixer = new THREE.AnimationMixer( window.model );
+        window.animating.mixer = new THREE.AnimationMixer( window.character );
 
-        animating.idleAction = animating.mixer.clipAction( animations[ 0 ] );
-        animating.walkAction = animating.mixer.clipAction( animations[ 3 ] );
-        animating.runAction = animating.mixer.clipAction( animations[ 1 ] );
+        window.animating.idleAction = window.animating.mixer.clipAction( animations[ 0 ] );
+        window.animating.walkAction = window.animating.mixer.clipAction( animations[ 3 ] );
+        window.animating.runAction = window.animating.mixer.clipAction( animations[ 1 ] );
 
-        animating.actions = [ animating.idleAction, animating.walkAction, animating.runAction ];
-
-
-        animating = activateAllActions(animating);
+        window.animating.actions = [ window.animating.idleAction, window.animating.walkAction, window.animating.runAction ];
+        activateAllActions();
     });
 
 
@@ -488,5 +478,5 @@ export function init(animating) {
     let ambientLight = new THREE.AmbientLight(0xFFFFFF, 8);
     scene.add(ambientLight);
 
-    return [scene, renderer, camera, controls, animating];
+    return [scene, renderer, camera, controls];
 }
