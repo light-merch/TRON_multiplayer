@@ -1,4 +1,5 @@
-import * as THREE from "./three.module.js";
+import * as THREE from "./three.js/build/three.module.js";
+import { FontLoader } from "./three.js/examples/jsm/loaders/FontLoader.js"
 
 import * as GRID from "./methods.js"
 
@@ -42,6 +43,22 @@ window.onload = function() {
 
     window.state = "title_screen";
     window.names = {};
+
+    class Animations {
+        constructor() {
+            this.idleAction = undefined; this.walkAction = undefined; this.runAction = undefined;
+            this.idleWeight = undefined; this.walkWeight = undefined; this.runWeight = undefined;
+            this.actions = undefined; this.settings = undefined;
+
+            this.skeleton = undefined; this.mixer = undefined; this.clock = undefined;
+
+            this.crossFadeControls = [];
+
+            this.singleStepMode = false;
+            this.sizeOfNextStep = 0;
+        }
+    }
+    let animating = new Animations();
 
 
     const FizzyText = function () {
@@ -257,11 +274,12 @@ window.onload = function() {
             if (event.which === 13 || event.which === 32) {
                 // Pressed enter, init game
 
-                let tmp = GRID.init();
+                let tmp = GRID.init(animating);
                 scene = tmp[0];
                 renderer = tmp[1];
                 camera = tmp[2];
                 controls = tmp[3];
+                animating = tmp[4]
 
                 stats = GRID.initStats(Stats);
 
@@ -275,6 +293,12 @@ window.onload = function() {
 
                 gui.add(fizzyText, "username").name("Enter username");
                 gui.add(fizzyText, "submitName").name("Enter game");
+
+                const folder = gui.addFolder( 'Crossfading' );
+                animating.crossFadeControls.push( folder.add( animating.settings, 'from walk to idle' ) );
+                animating.crossFadeControls.push( folder.add( animating.settings, 'from idle to walk' ) );
+                animating.crossFadeControls.push( folder.add( animating.settings, 'from walk to run' ) );
+                animating.crossFadeControls.push( folder.add( animating.settings, 'from run to walk' ) );
 
                 window.state = "nickname_select";
             }
@@ -303,7 +327,7 @@ window.onload = function() {
     }
 
 
-    const loader = new THREE.FontLoader();
+    const loader = new FontLoader();
     loader.load( "models/font.json", function (font) {
         window.font = font;
     });
@@ -352,6 +376,32 @@ window.onload = function() {
         requestAnimationFrame(GameLoop);
         stats.begin();
         controls.update();
+
+        console.log(animating.idleWeight)
+        animating.idleWeight = animating.idleAction.getEffectiveWeight();
+        animating.walkWeight = animating.walkAction.getEffectiveWeight();
+        animating.runWeight = animating.runAction.getEffectiveWeight();
+
+        // Update the panel values if weights are modified from "outside" (by crossfadings)
+        animating = GRID.updateWeightSliders(animating);
+
+        // Enable/disable crossfade controls according to current weight values
+        // GRID.updateCrossFadeControls(animating);
+
+        // Get the time elapsed since the last frame, used for mixer update (if not in single step mode)
+        let mixerUpdateDelta = animating.clock.getDelta();
+
+        // If in single step mode, make one step and then do nothing (until the user clicks again)
+        if (animating.singleStepMode) {
+            mixerUpdateDelta = animating.sizeOfNextStep;
+            animating.sizeOfNextStep = 0;
+        }
+
+        // If in single step mode, make one step and then do nothing (until the user clicks again)
+        if (animating.singleStepMode) {
+            mixerUpdateDelta = animating.sizeOfNextStep;
+            animating.sizeOfNextStep = 0;
+        }
 
         // This function is preserved for better times
         // update_locally();

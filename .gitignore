@@ -131,4 +131,5 @@ dmypy.json
 # Custom
 .idea/
 ip.py
-ip_example.py
+static/three.js/
+
