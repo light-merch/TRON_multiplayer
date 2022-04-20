@@ -6,9 +6,6 @@ import math
 import time
 from datetime import datetime
 from random import randint
-
-from matplotlib.font_manager import json_dump
-
 import eventlet
 from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, render_template
@@ -109,7 +106,8 @@ class Game:
         self.GameStart = True
 
     def player_reset(self):
-        socketio.emit('display_winner', json.dumps(self.Winner))
+        if self.UsersNum == 1:
+            socketio.emit('display_winner', json.dumps(self.Winner))
         time.sleep(2)
         self.GameStart = True
         socketio.emit('clear')
@@ -143,7 +141,6 @@ class Game:
             TheGrid.UsersNum += 1
 
     
-
     # Collision check
     def collision_check(self):
         # TODO: Asymptotic of this algorithm seems very bad :(
@@ -240,7 +237,6 @@ class Game:
             if self.AllPlayers[bike_key].boost_time <= 0:
                 # Reset player speed to normal
                 self.AllPlayers[bike_key].speed = min(TheGrid.Speed, self.AllPlayers[bike_key].speed + 0.01)
-                # print(self.AllPlayers[bike_key].speed, TheGrid.Speed)
             else:
                 # Update boost time
                 self.AllPlayers[bike_key].boost_time -= (current_time - self.LastTime)
