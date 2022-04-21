@@ -106,13 +106,18 @@ class Game:
         self.GameStart = True
 
     def player_reset(self):
-        if self.UsersNum == 1:
-            socketio.emit('display_winner', json.dumps(self.Winner))
+        if self.UsersNum == 0:
+            text = "Disintigrated"
+            socketio.emit("display_winner", json.dumps(text))
+        else:
+            text = "Winner:"
+            socketio.emit('display_winner', json.dumps(text + self.Winner))
+
         time.sleep(2)
         self.GameStart = True
-        socketio.emit('clear')
+        socketio.emit("clear")
         TheGrid.UsersNum = 0
-        self.Winner = ''
+        self.Winner = ""
 
 
         for key in self.AllPlayers.keys():

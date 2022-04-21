@@ -169,8 +169,9 @@ window.onload = function() {
 
     socket.on("display_winner", function(msg) {
         if (window.state === "game") {
-            let winner = JSON.parse(msg);   
-            document.getElementsByClassName("display")[0].innerHTML = '<h1>' + 'WINNER: ' + winner + '</h1>';
+            let to_display = JSON.parse(msg);
+            let html = "<h1>" + to_display + "</h1>"
+            document.getElementsByClassName("display")[0].innerHTML = html;
         }
     });
 
