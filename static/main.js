@@ -146,7 +146,8 @@ window.onload = function() {
         }
         window.cameraIsNull = true;
 
-        document.getElementsByClassName("display")[0].innerHTML = '';
+        let html = ''
+        document.getElementsByClassName("display")[0].innerHTML = html;
     });
 
 
