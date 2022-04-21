@@ -6,7 +6,6 @@ import math
 import time
 from datetime import datetime
 from random import randint
-
 import eventlet
 from flask_socketio import SocketIO
 from flask import Flask, send_from_directory, render_template
@@ -103,10 +102,23 @@ class Game:
         self.StartPositions = [0, 180, 90, 270, 45, 225, 135, 315, 0, 200, 110, 290, 340, 160, 70, 250, 225, 320]
         self.UsersNum = 0
         self.MaxBoosters = 5
+        self.Winner = ''
+        self.GameStart = True
 
     def player_reset(self):
-        socketio.emit('clear')
+        if self.UsersNum == 0:
+            text = "Disintegrated"
+            socketio.emit("display_winner", json.dumps(text))
+        else:
+            text = "Winner:"
+            socketio.emit('display_winner', json.dumps(text + " " + self.Winner))
+
+        time.sleep(2)
+        self.GameStart = True
+        socketio.emit("clear")
         TheGrid.UsersNum = 0
+        self.Winner = ""
+
 
         for key in self.AllPlayers.keys():
             elem = self.AllPlayers[key]
@@ -119,7 +131,7 @@ class Game:
             elem.rotation = 0
             elem.dead = False
             elem.booster = 0
-            elem.speed = self.Speed
+            elem.speed = 0
             elem.boost_time = 0
 
             angle = TheGrid.StartPositions[TheGrid.UsersNum] * math.pi / 180
@@ -133,6 +145,7 @@ class Game:
 
             TheGrid.UsersNum += 1
 
+    
     # Collision check
     def collision_check(self):
         # TODO: Asymptotic of this algorithm seems very bad :(
@@ -166,6 +179,7 @@ class Game:
                                         enemy.score += 1
                                     self.UsersNum -= 1
                                     if TheGrid.UsersNum <= 1:
+                                        TheGrid.Winner = enemy_key
                                         TheGrid.player_reset()
                     except:
                         pass
@@ -210,6 +224,10 @@ class Game:
     # Compute movements of all bikes since last calculation
     def update(self):
         current_time = int(time.time() * 1000)  # Current time in milliseconds
+
+        if self.GameStart and current_time - self.LastTime < 450: return
+        self.GameStart = False
+
         for bike_key in self.AllPlayers.keys():  # Iterate over all players
             # Out of borders
             if abs(self.AllPlayers[bike_key].x) > 500 or abs(self.AllPlayers[bike_key].z) > 800:

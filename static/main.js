@@ -145,6 +145,9 @@ window.onload = function() {
             GRID.resetTrailData(key);
         }
         window.cameraIsNull = true;
+
+        let html = ''
+        document.getElementsByClassName("display")[0].innerHTML = html;
     });
 
 
@@ -162,6 +165,14 @@ window.onload = function() {
     socket.on("pingclient", function() {
         if (window.state === "game") {
             socket.emit("pingserver", fizzyText.username);
+        }
+    });
+
+    socket.on("display_winner", function(msg) {
+        if (window.state === "game") {
+            let to_display = JSON.parse(msg);
+            let html = "<h1>" + to_display + "</h1>"
+            document.getElementsByClassName("display")[0].innerHTML = html;
         }
     });
 
