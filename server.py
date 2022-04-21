@@ -107,11 +107,11 @@ class Game:
 
     def player_reset(self):
         if self.UsersNum == 0:
-            text = "Disintigrated"
+            text = "Disintegrated"
             socketio.emit("display_winner", json.dumps(text))
         else:
             text = "Winner:"
-            socketio.emit('display_winner', json.dumps(text + self.Winner))
+            socketio.emit('display_winner', json.dumps(text + " " + self.Winner))
 
         time.sleep(2)
         self.GameStart = True
