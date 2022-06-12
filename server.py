@@ -319,7 +319,8 @@ def check(username):
 
 @socketio.on('pingserver')
 def ping(name):
-    TheGrid.AllPlayers[name].last_seen = int(time.time() * 1000)
+    if name in TheGrid.AllPlayers.keys():
+        TheGrid.AllPlayers[name].last_seen = int(time.time() * 1000)
 
 
 @socketio.on('keyup')
