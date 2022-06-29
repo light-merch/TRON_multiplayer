@@ -15,16 +15,16 @@ Note that flask-socketio version should be at least 5.x
 
 ## Developers
 >
-> [Artushkov Pavel](https://github.com/pavtiger) - Project idea & game development
+> [Paul Artushkov](https://github.com/pavtiger) - Project idea & game development
 >
-> [Balashov Harry](https://github.com/hwrryss) - Game development
+> [Harry Balashov](https://github.com/hwrryss) - Game development
 >
-> [Proskuriakov Dima](https://github.com/justdprroz) - Game tester
+> [Dima Proskuriakov](https://github.com/justdprroz) - Game tester
 > 
 
 ## Special thanks to these people
 > 
-> [Shishkin Nikita](https://vk.com/nik.vile) - Photoshopping textures
+> [Nikita Shishkin](https://vk.com/nik.vile) - Photoshopping textures
 > 
 > [u/kod8ultimate](https://www.reddit.com/user/kod8ultimate/) - 3D models
 >
