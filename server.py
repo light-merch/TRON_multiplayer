@@ -73,6 +73,7 @@ class Player:
     x_trail: list
     y_trail: list
     z_trail: list
+    pressed_keys: set
 
     booster: int = 0
     score: int = 0
@@ -326,8 +327,11 @@ def ping(name):
 @socketio.on('keyup')
 def up(data):
     username = data['user']
+    if data['key'] in TheGrid.AllPlayers[username].pressed_keys:
+        TheGrid.AllPlayers[username].pressed_keys.remove(data['key'])
+
     try:
-        if data['key'] == 65 or data['key'] == 68:  # A or D
+        if (data['key'] == 65 and 68 not in TheGrid.AllPlayers[username].pressed_keys) or (data['key'] == 68 and 65 not in TheGrid.AllPlayers[username].pressed_keys):  # A or D
             TheGrid.AllPlayers[username].max_turn_angle = 0
             TheGrid.AllPlayers[username].reset = True
     except:
@@ -337,6 +341,8 @@ def up(data):
 @socketio.on('keydown')
 def down(data):
     username = data['user']
+    TheGrid.AllPlayers[username].pressed_keys.add(data['key'])
+
     try:
         if data['key'] == 65:  # A
             TheGrid.AllPlayers[username].max_turn_angle = 0.7
@@ -377,7 +383,7 @@ def add(username, mobile):
 
         heading = math.atan2(a.cp(b), a.dp(b)) - math.pi
         TheGrid.AllPlayers[username] = Player(SPAWN_R * math.cos(angle), 0, SPAWN_R * math.sin(angle),
-                                              username, TheGrid.Speed, heading, heading, [], [], [])
+                                              username, TheGrid.Speed, heading, heading, [], [], [], set())
         TheGrid.UsersNum += 1
         converted = []
         for booster in TheGrid.boosters:
