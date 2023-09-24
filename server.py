@@ -69,6 +69,7 @@ class Player:
     x: float = 0
     y: float = 0
     z: float = 0
+    move_delta: list = field(default_factory=list)
     heading: float = 0
 
     dead: bool = False
@@ -128,6 +129,8 @@ class Game:
 
         for key in self.AllPlayers.keys():
             id = self.AllPlayers[key].current_vehicle
+            self.AllPlayers[key].move_delta = [0, 0, 0]
+
             elem = self.AllVehicles[id]
 
             elem.last_collision_check = None
@@ -155,7 +158,11 @@ class Game:
 
         global player
         for player_key in self.AllPlayers.keys():  # Bike which we check
+            if self.AllPlayers[player_key].current_vehicle == None: continue
+
             for enemy_key in self.AllPlayers.keys():  # Bike for collisions
+                if self.AllPlayers[enemy_key].current_vehicle == None: continue
+
                 player = self.AllVehicles[self.AllPlayers[player_key].current_vehicle]
                 enemy = self.AllVehicles[self.AllPlayers[enemy_key].current_vehicle]
 
@@ -183,6 +190,7 @@ class Game:
                                     self.UsersNum -= 1
                                     if TheGrid.UsersNum <= 1:
                                         TheGrid.player_reset()
+
                     except:
                         pass
 
@@ -207,8 +215,7 @@ class Game:
             except:
                 pass
 
-        for bike in self.AllPlayers.keys():
-            id = self.AllPlayers[bike].current_vehicle
+        for id in range(len(self.AllVehicles)):
             for boosterInd in range(len(self.boosters)):
                 dx = self.boosters[boosterInd].x - self.AllVehicles[id].x
                 dz = self.boosters[boosterInd].z - self.AllVehicles[id].z
@@ -228,6 +235,14 @@ class Game:
         current_time = int(time.time() * 1000)  # Current time in milliseconds
         for bike_key in self.AllPlayers.keys():  # Iterate over all players
             id = self.AllPlayers[bike_key].current_vehicle
+
+            if id == None:
+                # Update player character
+                self.AllPlayers[bike_key].x += self.AllPlayers[bike_key].move_delta[0]
+                self.AllPlayers[bike_key].y += self.AllPlayers[bike_key].move_delta[1]
+
+                continue
+
 
             if self.AllVehicles[id].stop:
                 continue
@@ -329,10 +344,18 @@ def ping(name):
 def up(data):
     username = data['user']
     try:
-        if data['key'] == 65 or data['key'] == 68:  # A or D
-            id = TheGrid.AllPlayers[username].current_vehicle
-            TheGrid.AllVehicles[id].max_turn_angle = 0
-            TheGrid.AllVehicles[id].reset = True
+        if TheGrid.AllPlayers[username].current_vehicle == None:
+            if data['key'] == 65:  # A
+                TheGrid.AllPlayers[username].move_delta = [0, 0, 0]
+
+            elif data['key'] == 68:  # D
+                TheGrid.AllPlayers[username].move_delta = [0, 0, 0]
+
+        else:
+            if data['key'] == 65 or data['key'] == 68:  # A or D
+                id = TheGrid.AllPlayers[username].current_vehicle
+                TheGrid.AllVehicles[id].max_turn_angle = 0
+                TheGrid.AllVehicles[id].reset = True
     except:
         pass
 
@@ -340,10 +363,23 @@ def up(data):
 @socketio.on('keydown')
 def down(data):
     username = data['user']
-    try:
-        id = TheGrid.AllPlayers[username].current_vehicle
+
+    id = TheGrid.AllPlayers[username].current_vehicle
+    if id == None:
+        if data['key'] == 65:  # A
+            TheGrid.AllPlayers[username].move_delta = [0.2, 0, 0]
+        elif data['key'] == 68:  # D
+            TheGrid.AllPlayers[username].move_delta = [-0.2, 0, 0]
+        if data['key'] == 87:  # W
+            TheGrid.AllPlayers[username].move_delta = [0, 0, 2]
+        elif data['key'] == 83:  # S
+            TheGrid.AllPlayers[username].move_delta = [0, 0, -2]
+
+    else:
         if data["key"] == 70:  # F
             TheGrid.AllVehicles[id].stop = True
+
+            TheGrid.AllPlayers[username].current_vehicle = None
             TheGrid.AllPlayers[username].x = TheGrid.AllVehicles[id].x
             TheGrid.AllPlayers[username].y = TheGrid.AllVehicles[id].y
             TheGrid.AllPlayers[username].z = TheGrid.AllVehicles[id].z
@@ -363,10 +399,6 @@ def down(data):
         elif data['key'] == 67:  # C
             TheGrid.AllVehicles[id][username].toggle_controls_rotation = not TheGrid.AllVehicles[
                 id].toggle_controls_rotation
-
-    except Exception as e:
-        print(e)
-
 
 
 @socketio.on('message')
@@ -394,6 +426,7 @@ def add(username, mobile):
             TheGrid.Speed, heading, heading))  # Create new bike
 
         TheGrid.AllPlayers[username] = Player(username, id)  # Initialise player on bike
+        TheGrid.AllPlayers[username].move_delta = [0, 0, 0]
 
         TheGrid.UsersNum += 1
         converted = []
@@ -489,7 +522,7 @@ if __name__ == "__main__":
     TheGrid = Game()
     eventlet.monkey_patch()
 
-    TheGrid.AllVehicles.append(Lightcycle(10, 0, -5, 0, 0, 0, 0))
+    TheGrid.AllVehicles.append(Lightcycle(10, 0, -20, 0, 0, 0, 0))
     TheGrid.AllVehicles[0].is_seated = False
 
     x = Thread(target=game_loop, args=(1,))
